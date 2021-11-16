@@ -10,6 +10,7 @@
 static int      Soliton_InputMode;                       // soliton input mode: 1/2/3 -> table/approximate analytical form/none
 static double   Soliton_OuterSlope;                      // soliton outer slope (only used by Soliton_InputMode=2)
 static char     Soliton_DensProf_Filename[MAX_STRING];   // filename of the reference soliton density profile
+static char     Table_Filename[1000];                    // Table name
 
 static int      Soliton_DensProf_NBin;                   // number of radial bins of the soliton density profile
 static double  *Soliton_DensProf   = NULL;               // soliton density profile [radius/density]
@@ -28,6 +29,8 @@ static double   Soliton_CM_TolErrR;                      // maximum allowed erro
        bool     Tidal_FixedPos;                          // Fix the point mass position
        bool     Tidal_Centrifugal;                       // Add the centrifugal pseudo force
        double   Tidal_CutoffR;                           // Cut-off radius
+       double   rs;                                      //scale raidus
+       double   rho;                                     //density of NFW
 
        double   Tidal_Vrot;                              // rotational velocity due to the point mass
        double   Tidal_CM[3] = { __DBL_MAX__, __DBL_MAX__, __DBL_MAX__ }; // Center of mass of the satellite
@@ -37,6 +40,14 @@ static double   Sponge_Width;                            // sponge width
 static double   Sponge_Amp;                              // sponge amplitude
 
        double   Sponge_dt = 0.0;                         // evolution time-step
+       double   *Eridanus_Prof = NULL;                   // time radius theta profile[time radius theta]
+       int      Eridanus_Prof_NBin;                      //number of raidal bin in Eridanus_Prof
+extern real     *h_ExtPotGrep_Eri;
+#ifdef __CUDACC__     
+extern real     *d_ExtPotGrep_Eri;
+#endif 
+       double   Table_Timestep;      
+       bool     Tidal_Orbit_Type;
 // =======================================================================================
 
 
@@ -158,6 +169,7 @@ void SetParameter()
    ReadPara->Add( "Soliton_InputMode",         &Soliton_InputMode,          1,             1,                3                 );
    ReadPara->Add( "Soliton_OuterSlope",        &Soliton_OuterSlope,        -8.0,           NoMin_double,     NoMax_double      );
    ReadPara->Add( "Soliton_DensProf_Filename",  Soliton_DensProf_Filename,  Useless_str,   Useless_str,      Useless_str       );
+   ReadPara->Add( "Table_Filename",             Table_Filename,             Useless_str,   Useless_str,      Useless_str       );
    ReadPara->Add( "Soliton_CM_MaxR",           &Soliton_CM_MaxR,           -1.0,           Eps_double,       NoMax_double      );
    ReadPara->Add( "Soliton_CM_TolErrR",        &Soliton_CM_TolErrR,        -1.0,           NoMin_double,     NoMax_double      );
    ReadPara->Add( "Star_RSeed",                &Star_RSeed,                 123,           0,                NoMax_int         );
@@ -180,6 +192,10 @@ void SetParameter()
    ReadPara->Add( "Tidal_FixedPos",            &Tidal_FixedPos,             false,         Useless_bool,     Useless_bool      );
    ReadPara->Add( "Tidal_Centrifugal",         &Tidal_Centrifugal,          false,         Useless_bool,     Useless_bool      );
    ReadPara->Add( "Tidal_CutoffR",             &Tidal_CutoffR,              __DBL_MAX__,   0.0,              NoMax_double      );
+   ReadPara->Add( "rs",                        &rs,                         18.3,          Eps_double,       NoMax_double      );
+   ReadPara->Add( "rho",                       &rho,                        1.15e+7,       Eps_double,       NoMax_double      );
+   ReadPara->Add( "Table_Timestep",            &Table_Timestep,             0.00075,       Eps_double,       NoMax_double      );
+   ReadPara->Add( "Tidal_Orbit_Type",          &Tidal_Orbit_Type,           true,         Useless_bool,     Useless_bool      );
 
    ReadPara->Add( "Sponge_Mode",               &Sponge_Mode,                3,             1,                3                 );
    ReadPara->Add( "Sponge_Width",              &Sponge_Width,               10.0,          Eps_double,       NoMax_double      );
@@ -199,12 +215,42 @@ void SetParameter()
 
    delete ReadPara;
 
+   double Tidal_Orbit = (Tidal_Orbit_Type) ? +1.0 : -1.0;
+   const bool Orbit   = (Tidal_Orbit>0.0 ) ? true : false;
+//load table
+   if (OPT__INIT != INIT_BY_RESTART)
+   {
+      if(!Orbit)
+      {
+      const bool RowMajor_No = false;  //load data into the column-major order
+      const bool AllocMem_Yes = true;  //allocate memory of columns to load
+      const int NCol = 3;              //total number of columns to load
+      const int Col[NCol] = {0,1,2};    // target columns(time radius theta)
+
+      Eridanus_Prof_NBin = Aux_LoadTable(Eridanus_Prof,Table_Filename,NCol,Col,RowMajor_No,AllocMem_Yes);
+      double *Prof_T     = Eridanus_Prof + 0*Eridanus_Prof_NBin;
+      double *Prof_R     = Eridanus_Prof + 1*Eridanus_Prof_NBin;
+      double *Prof_theta = Eridanus_Prof + 2*Eridanus_Prof_NBin;
+
+      for (int b=0; b<Eridanus_Prof_NBin; b++)
+      {
+           Prof_T[b] *= Const_Gyr / UNIT_T;
+           Prof_R[b] *= Const_kpc / UNIT_L;
+      }   
+      Table_Timestep *= Const_Gyr / UNIT_T;
+      }
+   }   
+
 // convert to code units
-   Tidal_Mass    *= Const_Msun / UNIT_M;
-   Tidal_R       *= Const_kpc  / UNIT_L;
-   Tidal_CutoffR *= Const_kpc  / UNIT_L;
-   Sponge_Width  *= Const_kpc  / UNIT_L;
-   Sponge_Amp    *= (1.0/Const_Gyr) / (1.0/UNIT_T);
+   Tidal_Mass     *= Const_Msun / UNIT_M;
+   Tidal_R        *= Const_kpc  / UNIT_L;
+   Tidal_CutoffR  *= Const_kpc  / UNIT_L;
+   Sponge_Width   *= Const_kpc  / UNIT_L;
+   Sponge_Amp     *= (1.0/Const_Gyr) / (1.0/UNIT_T);
+   rs             *= Const_kpc / UNIT_L;
+  
+   rho            *= (Const_Msun*UNIT_L*UNIT_L*UNIT_L) / (UNIT_M*Const_kpc*Const_kpc*Const_kpc);
+   
    for (int d=0; d<3; d++)
    {
       ParFileCM_Dis[d] *= Const_kpc        / UNIT_L;
@@ -387,6 +433,7 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
                 const int lv, double AuxArray[] )
 {
 
+//   const double Soliton_Center[3] = { amr->BoxCenter[0]+20,
    const double Soliton_Center[3] = { amr->BoxCenter[0],
                                       amr->BoxCenter[1],
                                       amr->BoxCenter[2] };
@@ -441,8 +488,12 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 
 
 // set the real and imaginary parts
-   fluid[REAL] = sqrt( fluid[DENS] );
-   fluid[IMAG] = 0.0;                  // imaginary part is always zero --> no initial velocity
+
+
+//   fluid[REAL] = sqrt( fluid[DENS] )* COS(ELBDM_ETA*(180*y));
+//   fluid[IMAG] = sqrt( fluid[DENS] )* SIN(ELBDM_ETA*(180*y));
+    fluid[REAL] = sqrt( fluid[DENS] );
+    fluid[IMAG] = 0.0;                  // imaginary part is always zero --> no initial velocity
 
 } // FUNCTION : SetGridIC
 
@@ -460,7 +511,10 @@ void End_EridanusII()
 {
 
    delete [] Soliton_DensProf;
-
+   delete [] h_ExtPotGrep_Eri; h_ExtPotGrep_Eri = NULL;
+#ifdef __CUDACC__
+ if (d_ExtPotGrep_Eri != NULL) {CUDA_CHECK_ERROR( cudaFree(d_ExtPotGrep_Eri));  
+#endif
 } // FUNCTION : End_EridanusII
 
 
@@ -897,7 +951,6 @@ void Record_EridanusII()
 void Init_ExtPotAuxArray_EridanusII( double AuxArray[] )
 {
 
-// ExtPot_AuxArray has the size of EXT_POT_NAUX_MAX (default = 10)
    if ( Tidal_RotatingFrame )
    {
       AuxArray[0] = Tidal_CM[0];
@@ -919,6 +972,8 @@ void Init_ExtPotAuxArray_EridanusII( double AuxArray[] )
    AuxArray[7] = ( Tidal_Centrifugal ) ? +1.0 : -1.0;
    AuxArray[8] = Tidal_Angle0;
    AuxArray[9] = ( Tidal_RotatingFrame ) ? +1.0 : -1.0;
+
+
 
 } // FUNCTION : Init_ExtPotAuxArray_EridanusII
 

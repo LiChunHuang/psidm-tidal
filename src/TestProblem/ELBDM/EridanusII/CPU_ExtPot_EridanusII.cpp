@@ -52,7 +52,17 @@ extern bool    Tidal_Centrifugal;
 extern double  Tidal_Vrot;
 extern double  Tidal_CM[3];
 
-//-------------------------------------------------------------------------------------------------------
+
+extern double  *Eridanus_Prof;
+extern int  Eridanus_Prof_NBin;
+extern double  rs;
+extern double  rho;
+extern double Table_Timestep;
+extern bool   Tidal_Orbit_Type;
+
+
+
+//---------------------------------------------------------------------------------------------------------
 // Function    :  SetExtPotAuxArray_EridanusII
 // Description :  Set the auxiliary arrays ExtPot_AuxArray_Flt/Int[] used by ExtPot_EridanusII()
 //
@@ -64,8 +74,11 @@ extern double  Tidal_CM[3];
 //
 // Return      :  AuxArray_Flt/Int[]
 //-------------------------------------------------------------------------------------------------------
+//#ifndef __CUDACC__
+
 void SetExtPotAuxArray_EridanusII( double AuxArray_Flt[], int AuxArray_Int[] )
 {
+
 
    if ( Tidal_RotatingFrame )
    {
@@ -88,9 +101,16 @@ void SetExtPotAuxArray_EridanusII( double AuxArray_Flt[], int AuxArray_Int[] )
    AuxArray_Flt[7] = ( Tidal_Centrifugal ) ? +1.0 : -1.0;
    AuxArray_Flt[8] = Tidal_Angle0;
    AuxArray_Flt[9] = ( Tidal_RotatingFrame ) ? +1.0 : -1.0;
+   
+   AuxArray_Flt[10]= rs;
+   AuxArray_Flt[11]= rho;
+   AuxArray_Flt[12]= NEWTON_G;
+   AuxArray_Flt[13]= Eridanus_Prof_NBin;
+   AuxArray_Flt[14]= Table_Timestep;
+   AuxArray_Flt[15]= (Tidal_Orbit_Type) ? +1.0 : -1.0;
 
 } // FUNCTION : SetExtPotAuxArray_EridanusII
-#endif // #ifndef __CUDACC__
+#endif // #ifndef __CUDACC__ ...else...
 
 
 
@@ -131,20 +151,47 @@ static real ExtPot_EridanusII( const double x, const double y, const double z, c
 {
 
    const bool RotatingFrame = ( UserArray_Flt[9] > 0.0 ) ? true : false;
+   const bool Orbit_Type    = ( UserArray_Flt[15]> 0.0 ) ? true : false;
 
    if ( RotatingFrame )
    {
       const double CM[3]       = { UserArray_Flt[0], UserArray_Flt[1], UserArray_Flt[2] };
       const real   GM          = UserArray_Flt[3];
-      const real   R           = UserArray_Flt[4];
       const real   Vrot        = UserArray_Flt[5];
       const bool   FixedPos    = ( UserArray_Flt[6] > 0.0 ) ? true : false;
       const bool   Centrifugal = ( UserArray_Flt[7] > 0.0 ) ? true : false;
       const real   Angle0      = UserArray_Flt[8];
+      const real   G           = UserArray_Flt[12];
+      const real   Rs          = UserArray_Flt[10];
+      const real   Rho         = UserArray_Flt[11];
+      const int    len         = UserArray_Flt[13];
+      double         R;
+      double       theta;
+  
 
-      real dx, dy, dz, dr2, _R, theta, Rx, Ry, Rz, tmp, phi;
 
-//    calculate the relative coordinates between the target cell and the center of mass of the satellite
+       if (Orbit_Type)
+       {
+           R                  = UserArray_Flt[4];
+           real __R           = (real)1.0/R;
+           theta              = (FixedPos) ? Angle0 : Vrot*Time*__R + Angle0;
+       } //if(Orbit_Type)
+       else
+       {
+         real *Prof_T = (real*)GenePtr[0];
+         real *Prof_R = (real*)GenePtr[1];
+         real *Prof_theta = (real*)GenePtr[2];
+
+//         const real TimeStep  = UserArray_Flt[14];
+         const double TimeStep = 0.00075;
+         int label = floor(Time/TimeStep);
+         R     = (Time-Prof_T[label])*(Prof_R[label+1]-Prof_R[label])/(Prof_T[label+1]-Prof_T[label]) + Prof_R[label];
+         theta = (Time-Prof_T[label])*(Prof_theta[label+1]-Prof_theta[label])/(Prof_T[label+1]-Prof_T[label]) + Prof_theta[label];
+       }//if (Orbit_Type)...else...       
+      
+      real dx, dy, dz, dr2, _R, Rx, Ry, Rz, tmp, phi, Rs3, _Rs, R2, _R2, _R3, Rs2, _Rs2, ratio, _ratio, ratio2, _ratio2, r2 ;
+
+//     calculate the relative coordinates between the target cell and the center of mass of the satellite
       dx  = (real)( x - CM[0] );
       dy  = (real)( y - CM[1] );
       dz  = (real)( z - CM[2] );
@@ -152,13 +199,29 @@ static real ExtPot_EridanusII( const double x, const double y, const double z, c
 
 //    calculate the relative coordinates between the MW center and the center of mass of the satellite
 //    --> assuming a circular orbit on the xy plane with an initial azimuthal angle of theta=0, where theta=acos(Rx/R)
-      _R    = (real)1.0 / R;
-      theta = ( FixedPos ) ? Angle0 : Vrot*Time*_R + Angle0;
-      Rx    = R*COS( theta );
-      Ry    = R*SIN( theta );
-      Rz    = (real)0.0;
-      tmp   = ( dx*Rx + dy*Ry + dz*Rz )*_R;
-      phi   = (real)0.5*GM*CUBE(_R)*( dr2 - (real)3.0*SQR(tmp) );
+      _R      = (real)1.0 / R;
+      _Rs     = (real)1.0 / Rs;
+      Rx      = R*COS( theta );
+      Ry      = R*SIN( theta );
+      Rz      = (real)0.0;
+      R2      = R*R;
+      _R2     = (real)1.0 / R2;
+      _R3     = (real)1.0 / CUBE(R);
+      Rs2     = Rs*Rs;
+      _Rs2    = 1.0/Rs2;
+      ratio   = 1.0 + R/Rs;
+      _ratio  = (real) 1.0/ratio;
+      ratio2  = ratio*ratio;
+      _ratio2 = (real)1.0/ratio2;
+      tmp     = ( dx*Rx + dy*Ry + dz*Rz )*_R;
+
+      
+
+//      phi     = (real)2.0*M_PI*G*CUBE(Rs)*Rho*((real)SQR(tmp)*(_R*_ratio2*_Rs2)+((real)3.0*SQR(tmp)-dr2)*(_R2*_ratio*_Rs-log(ratio)*_R3));      // NFW
+
+//      phi     = (real)0.5*GM*CUBE(_R)*( dr2 - (real)3.0*SQR(tmp) ); // Point mass
+
+      phi     = -1.5*GM*CUBE(_R)*dr2;   // FIG3 assumption
 
       if ( Centrifugal )
       phi  -= (real)0.5*GM*CUBE(_R)*( SQR(dx) + SQR(dy) );
@@ -173,9 +236,16 @@ static real ExtPot_EridanusII( const double x, const double y, const double z, c
       const real   dx     = (real)(x - Cen[0]);
       const real   dy     = (real)(y - Cen[1]);
       const real   dz     = (real)(z - Cen[2]);
+      const real    r     = SQRT( SQR(dx) + SQR(dy) + SQR(dz) ) ;
       const real   _r     = 1.0/SQRT( SQR(dx) + SQR(dy) + SQR(dz) );
+      
+      const double Rs     = UserArray_Flt[10];
+      const double Rho    = UserArray_Flt[11];
+      const double G      = UserArray_Flt[12];
 
-      return -GM*_r;
+
+      return -4*M_PI*G*Rho*Rs*Rs*Rs*_r*(log((Rs+r)/Rs)) ;;
+ //   returm -GM*_r;
    } // if ( RotatingFrame ) ... else ...
 
 } // FUNCTION : ExtPot_EridanusII

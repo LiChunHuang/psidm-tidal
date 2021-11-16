@@ -32,7 +32,16 @@ static void   RanVec_FixRadius( const double r, double RanVec[] );
 extern void (*Aux_Record_User_Ptr)();
 void SetExtPotAuxArray_EridanusII( double AuxArray_Flt[], int AuxArray_Int[] );
 
+extern double *Eridanus_Prof;
+extern int     Eridanus_Prof_NBin;
 
+
+       real *h_ExtPotGrep_Eri;
+extern bool Tidal_Orbit_Type;
+
+#ifdef GPU
+extern void SetGPUPtr( const real *h_table);
+#endif
 
 
 //-------------------------------------------------------------------------------------------------------
@@ -48,6 +57,39 @@ void SetExtPotAuxArray_EridanusII( double AuxArray_Flt[], int AuxArray_Int[] );
 //-------------------------------------------------------------------------------------------------------
 void Init_User_EridanusII()
 {
+    double Tidal_Orbit = (Tidal_Orbit_Type) ? +1.0 : -1.0 ;   
+    const bool Orbit = (Tidal_Orbit>0.0) ? true : false;
+    
+    if(!Orbit)
+    {
+       h_ExtPotGrep_Eri = (real*)malloc(Eridanus_Prof_NBin*3*sizeof(real));
+//     h_ExtPotGrep_Eri = new real [Eridanus_Prof_NBin*3];
+
+       double  *Prof_T     = Eridanus_Prof + 0*Eridanus_Prof_NBin;
+       double  *Prof_R     = Eridanus_Prof + 1*Eridanus_Prof_NBin;
+       double  *Prof_theta = Eridanus_Prof + 2*Eridanus_Prof_NBin; 
+ 
+       for (int b=0; b<Eridanus_Prof_NBin; b++)
+       {
+          h_ExtPotGrep_Eri[b                     ] = Prof_T[b];
+          h_ExtPotGrep_Eri[b+1*Eridanus_Prof_NBin] = Prof_R[b];
+          h_ExtPotGrep_Eri[b+2*Eridanus_Prof_NBin] = Prof_theta[b];
+       }
+ 
+       h_ExtPotGenePtr[0] = (real**)(h_ExtPotGrep_Eri);
+       h_ExtPotGenePtr[1] = (real**)(h_ExtPotGrep_Eri+1*Eridanus_Prof_NBin);
+       h_ExtPotGenePtr[2] = (real**)(h_ExtPotGrep_Eri+2*Eridanus_Prof_NBin);
+     
+#    ifdef GPU
+ 
+       SetGPUPtr(h_ExtPotGrep_Eri);
+#    endif 
+
+   }
+
+
+
+
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ...\n", __FUNCTION__ );
 
