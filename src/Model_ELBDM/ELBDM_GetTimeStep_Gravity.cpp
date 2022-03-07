@@ -10,6 +10,7 @@ static real GetMaxPot( const int lv );
 extern bool   Tidal_Enabled;
 extern double Tidal_CutoffR;
 extern double Tidal_CM[3];
+extern int    Sponge_Mode;
 
 
 
@@ -120,7 +121,7 @@ double dr[3], r2;
 
 
 // skip cells outside the cut-off radius
-if ( Tidal_Enabled )
+if ( Tidal_Enabled  &&  Sponge_Mode != 3 )
 {
    dr[0] = x - Tidal_CM[0];
    dr[1] = y - Tidal_CM[1];

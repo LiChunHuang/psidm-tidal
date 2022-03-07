@@ -29,6 +29,7 @@
 #define PASCAL       4
 #define VOLTA        5
 #define TURING       6
+#define AMPERE       7
 
 
 // models
@@ -209,6 +210,10 @@
 
 // maximum number of output derived fields
 #  define DER_NOUT_MAX        10
+
+
+// maximum number of fields to be stored in HDF5 snapshots
+#  define NFIELD_STORED_MAX   50
 
 
 // built-in fields in different models
@@ -476,7 +481,27 @@
 #  define  PAR_TIME           ( PAR_NATT_TOTAL - 1 )
 
 
-// bitwise field indices related to particles
+// bitwise indices of particles
+// particle attributes
+#  define _PAR_MASS           ( 1L << PAR_MASS )
+#  define _PAR_POSX           ( 1L << PAR_POSX )
+#  define _PAR_POSY           ( 1L << PAR_POSY )
+#  define _PAR_POSZ           ( 1L << PAR_POSZ )
+#  define _PAR_VELX           ( 1L << PAR_VELX )
+#  define _PAR_VELY           ( 1L << PAR_VELY )
+#  define _PAR_VELZ           ( 1L << PAR_VELZ )
+# ifdef STORE_PAR_ACC
+#  define _PAR_ACCX           ( 1L << PAR_ACCX )
+#  define _PAR_ACCY           ( 1L << PAR_ACCY )
+#  define _PAR_ACCZ           ( 1L << PAR_ACCZ )
+# endif
+#  define _PAR_TIME           ( 1L << PAR_TIME )
+#  define _PAR_POS            ( _PAR_POSX | _PAR_POSY | _PAR_POSZ )
+#  define _PAR_VEL            ( _PAR_VELX | _PAR_VELY | _PAR_VELZ )
+#  define _PAR_ACC            ( _PAR_ACCX | _PAR_ACCY | _PAR_ACCZ )
+#  define _PAR_TOTAL          (  ( 1L << PAR_NATT_TOTAL ) - 1L )
+
+// grid fields related to particles
 // --> note that _POTE = ( 1L << (NCOMP_TOTAL+NDERIVE) )
 #  define _PAR_DENS           ( 1L << (NCOMP_TOTAL+NDERIVE+1) )
 
@@ -839,6 +864,14 @@
 #define MAX_STRING         512
 
 
+// MPI floating-point data type
+#ifdef FLOAT8
+#  define MPI_GAMER_REAL MPI_DOUBLE
+#else
+#  define MPI_GAMER_REAL MPI_FLOAT
+#endif
+
+
 
 
 // ############
@@ -898,9 +931,12 @@
 
 // 3D to 1D array indices transformation for patch->magnetic[]
 #ifdef MHD
-#define IDX321_BX( i, j, k, Ni, Nj )   (  ( (k)*((Nj)  ) + (j) )*((Ni)+1) + (i)  )
-#define IDX321_BY( i, j, k, Ni, Nj )   (  ( (k)*((Nj)+1) + (j) )*((Ni)  ) + (i)  )
-#define IDX321_BZ( i, j, k, Ni, Nj )   (  ( (k)*((Nj)  ) + (j) )*((Ni)  ) + (i)  )
+#define IDX321_BX( i, j, k, Ni, Nj    )   (  ( (k)*((Nj)  ) + (j) )*((Ni)+1) + (i)  )
+#define IDX321_BY( i, j, k, Ni, Nj    )   (  ( (k)*((Nj)+1) + (j) )*((Ni)  ) + (i)  )
+#define IDX321_BZ( i, j, k, Ni, Nj    )   (  ( (k)*((Nj)  ) + (j) )*((Ni)  ) + (i)  )
+#define IDX321_B(  i, j, k, Ni, Nj, d )   (  ( (d) == 0 ) ? IDX321_BX( i, j, k, Ni, Nj ) : \
+                                             ( (d) == 1 ) ? IDX321_BY( i, j, k, Ni, Nj ) : \
+                                             ( (d) == 2 ) ? IDX321_BZ( i, j, k, Ni, Nj ) : NULL_INT  )
 #endif
 
 

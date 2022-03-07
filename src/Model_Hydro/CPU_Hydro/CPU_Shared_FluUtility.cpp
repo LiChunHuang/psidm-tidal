@@ -134,8 +134,8 @@ void Hydro_Rotate3D( real InOut[], const int XYZ, const bool Forward, const int 
 //
 // Note        :  1. Always apply pressure floor
 //                2. For passive scalars, we store their mass fraction as the primitive variables
-//                   when NormPassive is on
-//                   --> See the input parameters "NormPassive, NNorm, NormIdx"
+//                   when FracPassive is on
+//                   --> See the input parameters "FracPassive, NFrac, FracIdx"
 //                   --> But note that here we do NOT ensure "sum(mass fraction) == 1.0"
 //                       --> It is done by calling Hydro_NormalizePassive() in Hydro_Shared_FullStepUpdate()
 //                3. In[] and Out[] must NOT point to the same array
@@ -144,11 +144,9 @@ void Hydro_Rotate3D( real InOut[], const int XYZ, const bool Forward, const int 
 // Parameter   :  In                 : Input conserved variables
 //                Out                : Output primitive variables
 //                MinPres            : Minimum allowed pressure
-//                NormPassive        : true --> convert passive scalars to mass fraction
-//                NNorm              : Number of passive scalars for the option "NormPassive"
-//                                     --> Should be set to the global variable "PassiveNorm_NVar"
-//                NormIdx            : Target variable indices for the option "NormPassive"
-//                                     --> Should be set to the global variable "PassiveNorm_VarIdx"
+//                FracPassive        : true --> convert passive scalars to mass fraction
+//                NFrac              : Number of passive scalars for the option "FracPassive"
+//                FracIdx            : Target variable indices for the option "FracPassive"
 //                JeansMinPres       : Apply minimum pressure estimated from the Jeans length
 //                JeansMinPres_Coeff : Coefficient used by JeansMinPres = G*(Jeans_NCell*Jeans_dh)^2/(Gamma*pi);
 //                EoS_DensEint2Pres  : EoS routine to compute the gas pressure
@@ -163,7 +161,7 @@ void Hydro_Rotate3D( real InOut[], const int XYZ, const bool Forward, const int 
 //-------------------------------------------------------------------------------------------------------
 GPU_DEVICE
 void Hydro_Con2Pri( const real In[], real Out[], const real MinPres,
-                    const bool NormPassive, const int NNorm, const int NormIdx[],
+                    const bool FracPassive, const int NFrac, const int FracIdx[],
                     const bool JeansMinPres, const real JeansMinPres_Coeff,
                     const EoS_DE2P_t EoS_DensEint2Pres, const EoS_DP2E_t EoS_DensPres2Eint,
                     const double EoS_AuxArray_Flt[], const int EoS_AuxArray_Int[],
@@ -199,7 +197,7 @@ void Hydro_Con2Pri( const real In[], real Out[], const real MinPres,
 
 //    recompute internal energy to be consistent with the updated pressure
       if ( EintOut != NULL  &&  Out[4] != Pres0 )
-         *EintOut = EoS_DensPres2Eint( Out[0], Out[4], In+NCOMP_FLUID, EoS_AuxArray_Flt, EoS_AuxArray_Int, EoS_Table, NULL );
+         *EintOut = EoS_DensPres2Eint( Out[0], Out[4], In+NCOMP_FLUID, EoS_AuxArray_Flt, EoS_AuxArray_Int, EoS_Table );
    }
 
 
@@ -209,8 +207,8 @@ void Hydro_Con2Pri( const real In[], real Out[], const real MinPres,
    for (int v=NCOMP_FLUID; v<NCOMP_TOTAL; v++)  Out[v] = In[v];
 
 // convert the mass density of target passive scalars to mass fraction
-   if ( NormPassive )
-      for (int v=0; v<NNorm; v++)   Out[ NCOMP_FLUID + NormIdx[v] ] *= _Rho;
+   if ( FracPassive )
+      for (int v=0; v<NFrac; v++)   Out[ NCOMP_FLUID + FracIdx[v] ] *= _Rho;
 #  endif
 
 
@@ -229,8 +227,8 @@ void Hydro_Con2Pri( const real In[], real Out[], const real MinPres,
 //
 // Note        :  1. Does NOT check if the input pressure is greater than the given minimum threshold
 //                2. For passive scalars, we store their mass fraction as the primitive variables
-//                   when NormPassive is on
-//                   --> See the input parameters "NormPassive, NNorm, NormIdx"
+//                   when FracPassive is on
+//                   --> See the input parameters "FracPassive, NFrac, FracIdx"
 //                3. In[] and Out[] must NOT point to the same array
 //                4. In[] and Out[] should have the size of NCOMP_TOTAL_PLUS_MAG
 //                5. Convert pressure to internal energy using the input EoS routine by default
@@ -240,11 +238,9 @@ void Hydro_Con2Pri( const real In[], real Out[], const real MinPres,
 //
 // Parameter   :  In                : Array storing the input primitive variables
 //                Out               : Array to store the output conserved variables
-//                NormPassive       : true --> convert passive scalars to mass fraction
-//                NNorm             : Number of passive scalars for the option "NormPassive"
-//                                    --> Should be set to the global variable "PassiveNorm_NVar"
-//                NormIdx           : Target variable indices for the option "NormPassive"
-//                                    --> Should be set to the global variable "PassiveNorm_VarIdx"
+//                FracPassive       : true --> input passive scalars are mass fraction instead of density
+//                NFrac             : Number of passive scalars for the option "FracPassive"
+//                FracIdx           : Target variable indices for the option "FracPassive"
 //                EoS_DensPres2Eint : EoS routine to compute the gas internal energy
 //                EoS_AuxArray_*    : Auxiliary arrays for EoS_DensPres2Eint()
 //                EoS_Table         : EoS tables for EoS_DensPres2Eint()
@@ -254,7 +250,7 @@ void Hydro_Con2Pri( const real In[], real Out[], const real MinPres,
 // Return      :  Out[]
 //-------------------------------------------------------------------------------------------------------
 GPU_DEVICE
-void Hydro_Pri2Con( const real In[], real Out[], const bool NormPassive, const int NNorm, const int NormIdx[],
+void Hydro_Pri2Con( const real In[], real Out[], const bool FracPassive, const int NFrac, const int FracIdx[],
                     const EoS_DP2E_t EoS_DensPres2Eint, const double EoS_AuxArray_Flt[], const int EoS_AuxArray_Int[],
                     const real *const EoS_Table[EOS_NTABLE_MAX], const real* const EintIn )
 {
@@ -269,8 +265,8 @@ void Hydro_Pri2Con( const real In[], real Out[], const bool NormPassive, const i
    for (int v=NCOMP_FLUID; v<NCOMP_TOTAL; v++)  Out[v] = In[v];
 
 // convert the mass fraction of target passive scalars back to mass density
-   if ( NormPassive )
-      for (int v=0; v<NNorm; v++)   Out[ NCOMP_FLUID + NormIdx[v] ] *= In[0];
+   if ( FracPassive )
+      for (int v=0; v<NFrac; v++)   Out[ NCOMP_FLUID + FracIdx[v] ] *= In[0];
 #  endif
 
 
@@ -287,7 +283,7 @@ void Hydro_Pri2Con( const real In[], real Out[], const bool NormPassive, const i
    Emag   = (real)0.5*( SQR(Bx) + SQR(By) + SQR(Bz) );
 #  endif
    Eint   = ( EintIn == NULL ) ? EoS_DensPres2Eint( In[0], In[4], Out+NCOMP_FLUID, EoS_AuxArray_Flt,
-                                                    EoS_AuxArray_Int, EoS_Table, NULL )
+                                                    EoS_AuxArray_Int, EoS_Table )
                                : *EintIn;
    Out[4] = Hydro_ConEint2Etot( Out[0], Out[1], Out[2], Out[3], Eint, Emag );
 
@@ -566,7 +562,7 @@ real Hydro_Con2Pres( const real Dens, const real MomX, const real MomY, const re
    real Eint, Pres;
 
    Eint = Hydro_Con2Eint( Dens, MomX, MomY, MomZ, Engy, CheckMinEint_No, NULL_REAL, Emag );
-   Pres = EoS_DensEint2Pres( Dens, Eint, Passive, EoS_AuxArray_Flt, EoS_AuxArray_Int, EoS_Table, NULL );
+   Pres = EoS_DensEint2Pres( Dens, Eint, Passive, EoS_AuxArray_Flt, EoS_AuxArray_Int, EoS_Table );
 
    if ( CheckMinPres )   Pres = Hydro_CheckMinPres( Pres, MinPres );
 
@@ -667,7 +663,7 @@ real Hydro_ConEint2Etot( const real Dens, const real MomX, const real MomY, cons
 //                                    --> In some cases we actually want to check if temperature becomes unphysical,
 //                                        for which we don't want to enable this option
 //                MinTemp           : Temperature floor
-//                Bmag              : Magnetic energy density (0.5*B^2) --> For MHD only
+//                Emag              : Magnetic energy density (0.5*B^2) --> For MHD only
 //                EoS_DensEint2Temp : EoS routine to compute the gas temperature
 //                EoS_AuxArray_*    : Auxiliary arrays for EoS_DensEint2Temp()
 //                EoS_Table         : EoS tables for EoS_DensEint2Temp()
@@ -699,7 +695,7 @@ real Hydro_Con2Temp( const real Dens, const real MomX, const real MomY, const re
    real Eint, Temp;
 
    Eint = Hydro_Con2Eint( Dens, MomX, MomY, MomZ, Engy, CheckMinEint_No, NULL_REAL, Emag );
-   Temp = EoS_DensEint2Temp( Dens, Eint, Passive, EoS_AuxArray_Flt, EoS_AuxArray_Int, EoS_Table, NULL );
+   Temp = EoS_DensEint2Temp( Dens, Eint, Passive, EoS_AuxArray_Flt, EoS_AuxArray_Int, EoS_Table );
 
    if ( CheckMinTemp )   Temp = Hydro_CheckMinTemp( Temp, MinTemp );
 

@@ -43,7 +43,9 @@ void CUFLU_FluidSolver_MHM(
    const LR_Limiter_t LR_Limiter, const real MinMod_Coeff, const double Time,
    const bool UsePot, const OptExtAcc_t ExtAcc, const ExtAcc_t ExtAcc_Func,
    const real MinDens, const real MinPres, const real MinEint,
-   const real DualEnergySwitch, const bool NormPassive, const int NNorm,
+   const real DualEnergySwitch,
+   const bool NormPassive, const int NNorm,
+   const bool FracPassive, const int NFrac,
    const bool JeansMinPres, const real JeansMinPres_Coeff,
    const EoS_t EoS );
 #elif ( FLU_SCHEME == CTU )
@@ -69,7 +71,9 @@ void CUFLU_FluidSolver_CTU(
    const LR_Limiter_t LR_Limiter, const real MinMod_Coeff, const double Time,
    const bool UsePot, const OptExtAcc_t ExtAcc, const ExtAcc_t ExtAcc_Func,
    const real MinDens, const real MinPres, const real MinEint,
-   const real DualEnergySwitch, const bool NormPassive, const int NNorm,
+   const real DualEnergySwitch,
+   const bool NormPassive, const int NNorm,
+   const bool FracPassive, const int NFrac,
    const bool JeansMinPres, const real JeansMinPres_Coeff,
    const EoS_t EoS );
 #endif // FLU_SCHEME
@@ -212,6 +216,8 @@ void CUAPI_Set_Default_GPU_Parameter( int &GPU_NStream, int &Flu_GPU_NPGroup, in
             GPU_NStream = 16;
 #           elif ( GPU_ARCH == TURING )
             GPU_NStream = 16;
+#           elif ( GPU_ARCH == AMPERE )
+            GPU_NStream = 16;
 #           else
 #           error : UNKNOWN GPU_ARCH !!
 #           endif
@@ -228,6 +234,8 @@ void CUAPI_Set_Default_GPU_Parameter( int &GPU_NStream, int &Flu_GPU_NPGroup, in
 #           elif ( GPU_ARCH == VOLTA )
             GPU_NStream = 16;
 #           elif ( GPU_ARCH == TURING )
+            GPU_NStream = 16;
+#           elif ( GPU_ARCH == AMPERE )
             GPU_NStream = 16;
 #           else
 #           error : ERROR : UNKNOWN GPU_ARCH !!
@@ -263,6 +271,8 @@ void CUAPI_Set_Default_GPU_Parameter( int &GPU_NStream, int &Flu_GPU_NPGroup, in
          Flu_GPU_NPGroup = 1*GPU_NStream*DeviceProp.multiProcessorCount;
 #        elif ( GPU_ARCH == TURING )
          Flu_GPU_NPGroup = 1*GPU_NStream*DeviceProp.multiProcessorCount;
+#        elif ( GPU_ARCH == AMPERE )
+         Flu_GPU_NPGroup = 1*GPU_NStream*DeviceProp.multiProcessorCount;
 #        else
 #        error : UNKNOWN GPU_ARCH !!
 #        endif
@@ -279,6 +289,8 @@ void CUAPI_Set_Default_GPU_Parameter( int &GPU_NStream, int &Flu_GPU_NPGroup, in
 #        elif ( GPU_ARCH == VOLTA )
          Flu_GPU_NPGroup = 1*GPU_NStream*DeviceProp.multiProcessorCount;
 #        elif ( GPU_ARCH == TURING )
+         Flu_GPU_NPGroup = 1*GPU_NStream*DeviceProp.multiProcessorCount;
+#        elif ( GPU_ARCH == AMPERE )
          Flu_GPU_NPGroup = 1*GPU_NStream*DeviceProp.multiProcessorCount;
 #        else
 #        error : UNKNOWN GPU_ARCH !!
@@ -308,6 +320,8 @@ void CUAPI_Set_Default_GPU_Parameter( int &GPU_NStream, int &Flu_GPU_NPGroup, in
       Pot_GPU_NPGroup = 1*GPU_NStream*DeviceProp.multiProcessorCount;
 #     elif ( GPU_ARCH == TURING )
       Pot_GPU_NPGroup = 1*GPU_NStream*DeviceProp.multiProcessorCount;
+#     elif ( GPU_ARCH == AMPERE )
+      Pot_GPU_NPGroup = 1*GPU_NStream*DeviceProp.multiProcessorCount;
 #     else
 #     error : UNKNOWN GPU_ARCH !!
 #     endif
@@ -334,6 +348,8 @@ void CUAPI_Set_Default_GPU_Parameter( int &GPU_NStream, int &Flu_GPU_NPGroup, in
       Che_GPU_NPGroup = 1*GPU_NStream*DeviceProp.multiProcessorCount;
 #     elif ( GPU_ARCH == TURING )
       Che_GPU_NPGroup = 1*GPU_NStream*DeviceProp.multiProcessorCount;
+#     elif ( GPU_ARCH == AMPERE )
+      Che_GPU_NPGroup = 1*GPU_NStream*DeviceProp.multiProcessorCount;
 #     else
 #     error : UNKNOWN GPU_ARCH !!
 #     endif
@@ -358,6 +374,8 @@ void CUAPI_Set_Default_GPU_Parameter( int &GPU_NStream, int &Flu_GPU_NPGroup, in
 #     elif ( GPU_ARCH == VOLTA )
       Src_GPU_NPGroup = 1*GPU_NStream*DeviceProp.multiProcessorCount;
 #     elif ( GPU_ARCH == TURING )
+      Src_GPU_NPGroup = 1*GPU_NStream*DeviceProp.multiProcessorCount;
+#     elif ( GPU_ARCH == AMPERE )
       Src_GPU_NPGroup = 1*GPU_NStream*DeviceProp.multiProcessorCount;
 #     else
 #     error : UNKNOWN GPU_ARCH !!

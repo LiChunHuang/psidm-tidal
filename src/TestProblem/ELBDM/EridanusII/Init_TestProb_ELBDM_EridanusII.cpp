@@ -5,7 +5,6 @@
 
 // soliton-specific global variables
 // =======================================================================================
-       bool     FixDM;                                   // true --> do not evolve psidm at all
        double   Soliton_CoreRadius;                      // soliton core radius
 static int      Soliton_InputMode;                       // soliton input mode: 1/2/3 -> table/approximate analytical form/none
 static double   Soliton_OuterSlope;                      // soliton outer slope (only used by Soliton_InputMode=2)
@@ -35,7 +34,7 @@ static double   Soliton_CM_TolErrR;                      // maximum allowed erro
        double   Tidal_Vrot;                              // rotational velocity due to the point mass
        double   Tidal_CM[3] = { __DBL_MAX__, __DBL_MAX__, __DBL_MAX__ }; // Center of mass of the satellite
 
-static int      Sponge_Mode;                             // 1/2/3: sponge BC/truncation BC/none
+       int      Sponge_Mode;                             // 1/2/3: sponge BC/truncation BC/none
 static double   Sponge_Width;                            // sponge width
 static double   Sponge_Amp;                              // sponge amplitude
 
@@ -164,7 +163,6 @@ void SetParameter()
 // ********************************************************************************************************************************
 // ReadPara->Add( "KEY_IN_THE_FILE",           &VARIABLE,                   DEFAULT,       MIN,              MAX               );
 // ********************************************************************************************************************************
-   ReadPara->Add( "FixDM",                     &FixDM,                      false,         Useless_bool,     Useless_bool      );
    ReadPara->Add( "Soliton_CoreRadius",        &Soliton_CoreRadius,        -1.0,           Eps_double,       NoMax_double      );
    ReadPara->Add( "Soliton_InputMode",         &Soliton_InputMode,          1,             1,                3                 );
    ReadPara->Add( "Soliton_OuterSlope",        &Soliton_OuterSlope,        -8.0,           NoMin_double,     NoMax_double      );
@@ -261,8 +259,6 @@ void SetParameter()
    if ( Soliton_CM_TolErrR < 0.0 )  Soliton_CM_TolErrR = 1.0*amr->dh[MAX_LEVEL];
 
 // (1-3) check the runtime parameters
-   if ( FixDM  &&  OPT__FIXUP_FLUX )   Aux_Error( ERROR_INFO, "must disable OPT__FIXUP_FLUX for FixDM !!\n" );
-
 #  ifndef PARTICLE
    if ( DensRecMode == 2 )    Aux_Error( ERROR_INFO, "DensRecMode == 2 must work with PARTICLE !!\n" );
 #  endif
@@ -350,7 +346,6 @@ void SetParameter()
    {
       Aux_Message( stdout, "======================================================================================\n" );
       Aux_Message( stdout, "  test problem ID                           = %d\n",     TESTPROB_ID                );
-      Aux_Message( stdout, "  fix dark matter                           = %d\n",     FixDM                      );
       Aux_Message( stdout, "  soliton core radius                       = %13.6e\n", Soliton_CoreRadius         );
       Aux_Message( stdout, "  soliton input mode                        = %d\n",     Soliton_InputMode          );
       if      ( Soliton_InputMode == 2 )
@@ -596,8 +591,8 @@ void GetCenterOfMass( const double CM_Old[], double CM_New[], const double CM_Ma
 #     ifdef PARTICLE
       Prepare_PatchData_InitParticleDensityArray( lv );
 
-      Par_CollectParticle2OneLevel( lv, PredictParPos_No, NULL_REAL, SibBufPatch, FaSibBufPatch, JustCountNPar_No,
-                                    TimingSendPar_No );
+      Par_CollectParticle2OneLevel( lv, _PAR_MASS|_PAR_POSX|_PAR_POSY|_PAR_POSZ, PredictParPos_No, NULL_REAL,
+                                    SibBufPatch, FaSibBufPatch, JustCountNPar_No, TimingSendPar_No );
 #     endif
 
 //    get the total density on grids
@@ -748,8 +743,8 @@ void Record_EridanusII()
 #     ifdef PARTICLE
       Prepare_PatchData_InitParticleDensityArray( lv );
 
-      Par_CollectParticle2OneLevel( lv, PredictParPos_No, NULL_REAL, SibBufPatch, FaSibBufPatch, JustCountNPar_No,
-                                    TimingSendPar_No );
+      Par_CollectParticle2OneLevel( lv, _PAR_MASS|_PAR_POSX|_PAR_POSY|_PAR_POSZ, PredictParPos_No, NULL_REAL,
+                                    SibBufPatch, FaSibBufPatch, JustCountNPar_No, TimingSendPar_No );
 #     endif
 
 //    get the total density on grids
@@ -989,6 +984,7 @@ void Init_ExtPotAuxArray_EridanusII( double AuxArray[] )
 //                           --> Including both active and passive variables
 //                x/y/z    : Target physical coordinates
 //                Time     : Target physical time
+//                dt       : Time interval to advance solution
 //                lv       : Target refinement level
 //                AuxArray : Auxiliary array
 //
@@ -996,7 +992,7 @@ void Init_ExtPotAuxArray_EridanusII( double AuxArray[] )
 //                false : This cell has not been reset
 //-------------------------------------------------------------------------------------------------------
 bool Reset( real fluid[], const double x, const double y, const double z, const double Time,
-            const int lv, double AuxArray[] )
+            const double dt, const int lv, double AuxArray[] )
 {
 
    const real dr[3] = { x-Tidal_CM[0], y-Tidal_CM[1], z-Tidal_CM[2] };

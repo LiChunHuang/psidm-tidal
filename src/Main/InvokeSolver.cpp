@@ -17,8 +17,6 @@ extern Timer_t *Timer_Poi_PrePot_C[NLEVEL];
 extern Timer_t *Timer_Poi_PrePot_F[NLEVEL];
 #endif
 
-extern bool FixDM;
-
 
 
 //-------------------------------------------------------------------------------------------------------
@@ -51,7 +49,7 @@ extern bool FixDM;
 //                                   TimeOld to TimeNew
 //                               --> For the Poisson solver, this function calculates potential at **TimeNew**
 //                               --> For the dt solver, this function estimates dt at **TimeNew**
-//                dt           : Time interval to advance solution for the fluid and gravity solvers
+//                dt_in        : Time interval to advance solution for the fluid and gravity solvers
 //                               (can be different from TimeNew-TimeOld if COMOVING is on)
 //                Poi_Coeff    : Coefficient in front of the RHS in the Poisson eq.
 //                SaveSg_Flu   : Sandglass to store the updated fluid data (for the fluid, gravity, and Grackle solvers)
@@ -62,7 +60,7 @@ extern bool FixDM;
 //                               false --> Advance the patches which can    be overlapped with MPI communication
 //                               (useful only if "OverlapMPI == true")
 //-------------------------------------------------------------------------------------------------------
-void InvokeSolver( const Solver_t TSolver, const int lv, const double TimeNew, const double TimeOld, const double dt,
+void InvokeSolver( const Solver_t TSolver, const int lv, const double TimeNew, const double TimeOld, const double dt_in,
                    const double Poi_Coeff, const int SaveSg_Flu, const int SaveSg_Mag, const int SaveSg_Pot,
                    const bool OverlapMPI, const bool Overlap_Sync )
 {
@@ -100,6 +98,10 @@ void InvokeSolver( const Solver_t TSolver, const int lv, const double TimeNew, c
 
    if ( TSolver == SRC_SOLVER  &&  ( SaveSg_Flu != 0 &&  SaveSg_Flu != 1 )  )
       Aux_Error( ERROR_INFO, "incorrect SaveSg_Flu (%d) for the solver %d !!\n", SaveSg_Flu, TSolver );
+
+
+// reset the time-step actually adopted to zero for OPT__FREEZE_FLUID
+   const double dt = ( OPT__FREEZE_FLUID ) ? 0.0 : dt_in;
 
 
 // set the maximum number of patch groups to be updated at a time
@@ -438,10 +440,9 @@ void Preparation_Step( const Solver_t TSolver, const int lv, const double TimeNe
 //                Poi_Coeff : Coefficient in front of the RHS in the Poisson eq.
 //-------------------------------------------------------------------------------------------------------
 void Solver( const Solver_t TSolver, const int lv, const double TimeNew, const double TimeOld,
-             const int NPG, const int ArrayID, const double dt_in, const double Poi_Coeff )
+             const int NPG, const int ArrayID, const double dt, const double Poi_Coeff )
 {
 
-   const double dt = ( FixDM ) ? 0.0 : dt_in;
    const double dh = amr->dh[lv];
 
 #  ifdef GRAVITY
@@ -539,7 +540,9 @@ void Solver( const Solver_t TSolver, const int lv, const double TimeNew, const d
                                  ELBDM_ETA, ELBDM_TAYLOR3_COEFF, ELBDM_TAYLOR3_AUTO,
                                  TimeOld, (OPT__SELF_GRAVITY || OPT__EXT_POT), OPT__EXT_ACC,
                                  MIN_DENS, MIN_PRES, MIN_EINT, DUAL_ENERGY_SWITCH,
-                                 OPT__NORMALIZE_PASSIVE, PassiveNorm_NVar, JEANS_MIN_PRES, JeansMinPres_Coeff,
+                                 OPT__NORMALIZE_PASSIVE, PassiveNorm_NVar,
+                                 OPT__INT_FRAC_PASSIVE_LR, PassiveIntFrac_NVar,
+                                 JEANS_MIN_PRES, JeansMinPres_Coeff,
                                  GPU_NSTREAM );
 #        else
          CPU_FluidSolver       ( h_Flu_Array_F_In[ArrayID], h_Flu_Array_F_Out[ArrayID],
@@ -550,7 +553,9 @@ void Solver( const Solver_t TSolver, const int lv, const double TimeNew, const d
                                  ELBDM_ETA, ELBDM_TAYLOR3_COEFF, ELBDM_TAYLOR3_AUTO,
                                  TimeOld, (OPT__SELF_GRAVITY || OPT__EXT_POT), OPT__EXT_ACC,
                                  MIN_DENS, MIN_PRES, MIN_EINT, DUAL_ENERGY_SWITCH,
-                                 OPT__NORMALIZE_PASSIVE, PassiveNorm_NVar, PassiveNorm_VarIdx, JEANS_MIN_PRES, JeansMinPres_Coeff );
+                                 OPT__NORMALIZE_PASSIVE, PassiveNorm_NVar, PassiveNorm_VarIdx,
+                                 OPT__INT_FRAC_PASSIVE_LR, PassiveIntFrac_NVar, PassiveIntFrac_VarIdx,
+                                 JEANS_MIN_PRES, JeansMinPres_Coeff );
 #        endif
       break;
 

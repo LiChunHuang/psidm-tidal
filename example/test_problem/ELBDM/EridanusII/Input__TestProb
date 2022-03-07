@@ -1,5 +1,4 @@
 # problem-specific runtime parameters
-FixDM                             0                                  # do not evolve psidm at all [0]
 Soliton_CoreRadius                6.5e-1                             # soliton core radius (in code unit)
 Soliton_InputMode                 2                                  # soliton input mode (1/2/3 -> table/approximate analytical form/none) [1]
 Soliton_OuterSlope               -8.5                                # soliton outer slope (only used by Soliton_InputMode=2) [-8.0]

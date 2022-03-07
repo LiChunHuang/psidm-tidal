@@ -37,19 +37,21 @@ const TestProbID_t
    TESTPROB_HYDRO_BLAST_WAVE                   =    1,
    TESTPROB_HYDRO_ACOUSTIC_WAVE                =    2,
    TESTPROB_HYDRO_BONDI                        =    3,
-   TESTPROB_HYDRO_CLUSTER_MERGER_VS_FLASH      =    4,
+   TESTPROB_HYDRO_CLUSTER_MERGER               =    4,
    TESTPROB_HYDRO_AGORA_ISOLATED_GALAXY        =    5,
    TESTPROB_HYDRO_CAUSTIC                      =    6,
    TESTPROB_HYDRO_SPHERICAL_COLLAPSE           =    7,
    TESTPROB_HYDRO_KELVIN_HELMHOLTZ_INSTABILITY =    8,
    TESTPROB_HYDRO_RIEMANN                      =    9,
-   TESTPROB_HYDRO_COLLIDING_JETS               =   10,
+   TESTPROB_HYDRO_JET                          =   10,
    TESTPROB_HYDRO_PLUMMER                      =   11,
    TESTPROB_HYDRO_GRAVITY                      =   12,
    TESTPROB_HYDRO_MHD_ABC                      =   13,
    TESTPROB_HYDRO_MHD_ORSZAG_TANG_VORTEX       =   14,
    TESTPROB_HYDRO_MHD_LINEAR_WAVE              =   15,
    TESTPROB_HYDRO_JEANS_INSTABILITY            =   16,
+   TESTPROB_HYDRO_PARTICLE_EQUILIBRIUM_IC      =   17,
+   TESTPROB_HYDRO_BARRED_POT                   =   51,
 
    TESTPROB_ELBDM_EXTPOT                       = 1000,
    TESTPROB_ELBDM_JEANS_INSTABILITY_COMOVING   = 1001,
@@ -112,12 +114,14 @@ const IntScheme_t
 // data reconstruction TVD limiters
 typedef int LR_Limiter_t;
 const LR_Limiter_t
-   LR_LIMITER_NONE = 0,
-   VANLEER         = 1,
-   GMINMOD         = 2,
-   ALBADA          = 3,
-   VL_GMINMOD      = 4,
-   EXTPRE          = 5;
+   LR_LIMITER_DEFAULT    = -1,
+   LR_LIMITER_NONE       = 0,
+   LR_LIMITER_VANLEER    = 1,
+   LR_LIMITER_GMINMOD    = 2,
+   LR_LIMITER_ALBADA     = 3,
+   LR_LIMITER_VL_GMINMOD = 4,
+   LR_LIMITER_EXTPRE     = 5,
+   LR_LIMITER_CENTRAL    = 6;
 
 
 // data output formats
@@ -365,6 +369,11 @@ const NormPassive_t
    NORMALIZE_NO  = 0,
    NORMALIZE_YES = 1;
 
+typedef int IntFracPassive_t;
+const IntFracPassive_t
+   INTERP_FRAC_NO  = 0,
+   INTERP_FRAC_YES = 1;
+
 
 // field types
 typedef int FieldIdx_t;
@@ -414,22 +423,22 @@ const PatchType_t
 // function pointers
 typedef real (*EoS_DE2P_t)( const real Dens, const real Eint, const real Passive[],
                             const double AuxArray_Flt[], const int AuxArray_Int[],
-                            const real *const Table[EOS_NTABLE_MAX], real ExtraInOut[] );
+                            const real *const Table[EOS_NTABLE_MAX] );
 typedef real (*EoS_DP2E_t)( const real Dens, const real Pres, const real Passive[],
                             const double AuxArray_Flt[], const int AuxArray_Int[],
-                            const real *const Table[EOS_NTABLE_MAX], real ExtraInOut[] );
+                            const real *const Table[EOS_NTABLE_MAX] );
 typedef real (*EoS_DP2C_t)( const real Dens, const real Pres, const real Passive[],
                             const double AuxArray_Flt[], const int AuxArray_Int[],
-                            const real *const Table[EOS_NTABLE_MAX], real ExtraInOut[] );
-typedef void (*EoS_GENE_t)( const int Mode, real Out[], const real In[],
+                            const real *const Table[EOS_NTABLE_MAX] );
+typedef void (*EoS_GENE_t)( const int Mode, real Out[], const real In_Flt[], const int In_Int[],
                             const double AuxArray_Flt[], const int AuxArray_Int[],
                             const real *const Table[EOS_NTABLE_MAX] );
 typedef real (*EoS_DE2T_t)( const real Dens, const real Eint, const real Passive[],
                             const double AuxArray_Flt[], const int AuxArray_Int[],
-                            const real *const Table[EOS_NTABLE_MAX], real ExtraInOut[] );
+                            const real *const Table[EOS_NTABLE_MAX] );
 typedef real (*EoS_DT2P_t)( const real Dens, const real Temp, const real Passive[],
                             const double AuxArray_Flt[], const int AuxArray_Int[],
-                            const real *const Table[EOS_NTABLE_MAX], real ExtraInOut[] );
+                            const real *const Table[EOS_NTABLE_MAX] );
 typedef void (*ExtAcc_t)( real Acc[], const double x, const double y, const double z, const double Time,
                           const double UserArray[] );
 typedef real (*ExtPot_t)( const double x, const double y, const double z, const double Time,

@@ -280,6 +280,7 @@ void Init_User_EridanusII()
 
 // refine the grids
    const bool   Redistribute_Yes = true;
+   const bool   SendGridData_Yes = true;
    const bool   ResetLB_Yes      = true;
 #  if ( defined PARTICLE  &&  defined LOAD_BALANCE )
    const double Par_Weight       = amr->LB->Par_Weight;
@@ -306,7 +307,7 @@ void Init_User_EridanusII()
 
       Buf_GetBufferData( lv+1, amr->FluSg[lv+1], NULL_INT, NULL_INT, DATA_AFTER_REFINE, _TOTAL, _NONE, Flu_ParaBuf, USELB_YES );
 
-      LB_Init_LoadBalance( Redistribute_Yes, Par_Weight, ResetLB_Yes, lv+1 );
+      LB_Init_LoadBalance( Redistribute_Yes, SendGridData_Yes, Par_Weight, ResetLB_Yes, lv+1 );
 #     endif
 
       if ( MPI_Rank == 0 )    Aux_Message( stdout, "done\n" );
