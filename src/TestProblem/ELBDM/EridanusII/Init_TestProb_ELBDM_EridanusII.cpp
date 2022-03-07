@@ -485,8 +485,8 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 // set the real and imaginary parts
 
 
-//   fluid[REAL] = sqrt( fluid[DENS] )* COS(ELBDM_ETA*(180*y));
-//   fluid[IMAG] = sqrt( fluid[DENS] )* SIN(ELBDM_ETA*(180*y));
+//   fluid[REAL] = sqrt( fluid[DENS] )* COS(ELBDM_ETA*(25*y));
+//   fluid[IMAG] = sqrt( fluid[DENS] )* SIN(ELBDM_ETA*(25*y));
     fluid[REAL] = sqrt( fluid[DENS] );
     fluid[IMAG] = 0.0;                  // imaginary part is always zero --> no initial velocity
 

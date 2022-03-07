@@ -219,9 +219,9 @@ static real ExtPot_EridanusII( const double x, const double y, const double z, c
 
 //      phi     = (real)2.0*M_PI*G*CUBE(Rs)*Rho*((real)SQR(tmp)*(_R*_ratio2*_Rs2)+((real)3.0*SQR(tmp)-dr2)*(_R2*_ratio*_Rs-log(ratio)*_R3));      // NFW
 
-//      phi     = (real)0.5*GM*CUBE(_R)*( dr2 - (real)3.0*SQR(tmp) ); // Point mass
+      phi     = (real)0.5*GM*CUBE(_R)*( dr2 - (real)3.0*SQR(tmp) ); // Point mass
 
-      phi     = -1.5*GM*CUBE(_R)*dr2;   // FIG3 assumption
+//      phi     = -1.5*GM*CUBE(_R)*dr2;   // FIG3 assumption
 
       if ( Centrifugal )
       phi  -= (real)0.5*GM*CUBE(_R)*( SQR(dx) + SQR(dy) );

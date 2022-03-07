@@ -95,7 +95,7 @@ SIMU_OPTION += -DEOS=EOS_GAMMA
 # ------------------------------------------------------------------------------------
 else ifeq "$(filter -DMODEL=ELBDM, $(SIMU_OPTION))" "-DMODEL=ELBDM"
 # enforce the mass conservation
-SIMU_OPTION += -DCONSERVE_MASS
+#SIMU_OPTION += -DCONSERVE_MASS
 
 # 4-th order Laplacian
 SIMU_OPTION += -DLAPLACIAN_4TH
@@ -336,8 +336,8 @@ LIBYT_PATH   :=
 
 # NTU-eureka (default: openmpi-intel)
 CUDA_PATH    := /software/cuda/default
-#FFTW_PATH    := /software/fftw/default
-FFTW_PATH    := /software/fftw/2.1.5-intel-oneapi
+FFTW_PATH    := /software/fftw/default
+#FFTW_PATH    := /software/fftw/2.1.5-intel-oneapi
 #FFTW_PATH    := /software/fftw/2.1.5-gnu
 MPI_PATH     := /software/openmpi/default
 #MPI_PATH     := /software/openmpi/3.1.5-gnu
