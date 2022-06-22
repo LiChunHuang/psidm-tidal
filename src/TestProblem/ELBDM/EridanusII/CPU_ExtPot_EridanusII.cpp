@@ -244,8 +244,8 @@ static real ExtPot_EridanusII( const double x, const double y, const double z, c
       const double G      = UserArray_Flt[12];
 
 
-      return -4*M_PI*G*Rho*Rs*Rs*Rs*_r*(log((Rs+r)/Rs)) ;;
- //   returm -GM*_r;
+ //    return -4*M_PI*G*Rho*Rs*Rs*Rs*_r*(log((Rs+r)/Rs)) ;;
+      return  -GM*_r;
    } // if ( RotatingFrame ) ... else ...
 
 } // FUNCTION : ExtPot_EridanusII

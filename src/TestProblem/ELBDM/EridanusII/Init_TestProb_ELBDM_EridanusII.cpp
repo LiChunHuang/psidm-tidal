@@ -41,12 +41,18 @@ static double   Sponge_Amp;                              // sponge amplitude
        double   Sponge_dt = 0.0;                         // evolution time-step
        double   *Eridanus_Prof = NULL;                   // time radius theta profile[time radius theta]
        int      Eridanus_Prof_NBin;                      //number of raidal bin in Eridanus_Prof
-extern real     *h_ExtPotGrep_Eri;
+extern real     *h_ExtPotGrep_Eri;                       // pointer for the CPU
 #ifdef __CUDACC__     
-extern real     *d_ExtPotGrep_Eri;
+extern real     *d_ExtPotGrep_Eri;                       // pointer for the GPU
 #endif 
-       double   Table_Timestep;      
-       bool     Tidal_Orbit_Type;
+       double   Table_Timestep;                          //Timestep of ellipitcal orbit table
+       bool     Tidal_Orbit_Type;                        //0 = elliptical /  1 = circular
+static int      Perturbation;                            //0 = perturbation off /1 = perturbation off    
+static char     Soliton_perturb_Filename[MAX_STRING];   //filename of hte reference solition perturb density profile
+static int      Soliton_perturb_NBin;                    //number of radial bins of the soliton density perturbed profile
+static double   *Soliton_perturb = NULL;
+
+
 // =======================================================================================
 
 
@@ -209,6 +215,9 @@ void SetParameter()
 
    ReadPara->Add( "DensRecMode",               &DensRecMode,                3,             1,                3                 );
 
+   ReadPara->Add( "Perturbation",              &Perturbation,               0,             NoMin_int,        NoMax_int         );
+   ReadPara->Add( "Soliton_perturb_Filename",   Soliton_perturb_Filename,   Useless_str,   Useless_str,      Useless_str       );
+   
    ReadPara->Read( FileName );
 
    delete ReadPara;
@@ -282,8 +291,15 @@ void SetParameter()
       const int  Col[NCol]    = {0, 1};   // target columns: (radius, density)
 
       Soliton_DensProf_NBin = Aux_LoadTable( Soliton_DensProf, Soliton_DensProf_Filename, NCol, Col, RowMajor_No, AllocMem_Yes );
-
-
+      
+      if (Perturbation != 0)
+      {
+         Soliton_perturb_NBin = Aux_LoadTable(Soliton_perturb, Soliton_perturb_Filename, NCol, Col, RowMajor_No, AllocMem_Yes );
+         if ( Soliton_perturb_NBin != Soliton_DensProf_NBin )
+	    {
+	      Aux_Error(ERROR_INFO, "Perturbation file should be in the same length of unperturbed one\n");
+	    }
+      }
 //    get the core radius of the reference profile
       const double *RadiusRef = Soliton_DensProf + 0*Soliton_DensProf_NBin;
       const double *DensRef   = Soliton_DensProf + 1*Soliton_DensProf_NBin;
@@ -397,6 +413,9 @@ void SetParameter()
       Aux_Message( stdout, "  Particle CM velocity z     = %14.7e km/s\n", ParFileCM_Vel[2]*(UNIT_L/UNIT_T)/(Const_km/Const_s) ); }
       Aux_Message( stdout, "\n" );
       Aux_Message( stdout, "  Density recording mode = %d\n", DensRecMode );
+      Aux_Message( stdout, "  perturbed density profile filename          = %s\n", Soliton_perturb_Filename);
+      Aux_Message( stdout, "  number of bins of the perturbed density     = %d\n", Soliton_perturb_NBin    );
+      Aux_Message( stdout, "  perturbation option       = %d\n",        Perturbation);
       Aux_Message( stdout, "======================================================================================\n" );
    }
 
@@ -428,7 +447,7 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
                 const int lv, double AuxArray[] )
 {
 
-//   const double Soliton_Center[3] = { amr->BoxCenter[0]+20,
+//   const double Soliton_Center[3] = { amr->BoxCenter[0]+60,
    const double Soliton_Center[3] = { amr->BoxCenter[0],
                                       amr->BoxCenter[1],
                                       amr->BoxCenter[2] };
@@ -440,6 +459,22 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
    {
       const double *Table_Radius  = Soliton_DensProf + 0*Soliton_DensProf_NBin;  // radius
       const double *Table_Density = Soliton_DensProf + 1*Soliton_DensProf_NBin;  // density
+      double Table_Total[Soliton_DensProf_NBin]; // array for adding denstiy and perturbation
+      if (Perturbation == 0)
+      {
+         for (int b=0; b<Soliton_DensProf_NBin; b++)
+	 {
+	     Table_Total[b] = Table_Density[b];
+         }  
+      }
+      else if (Perturbation == 1)
+      {
+         const double *Table_Perturb = Soliton_perturb + 1*Soliton_perturb_NBin;
+	 for (int b=0; b<Soliton_DensProf_NBin; b++)
+	 {
+	     Table_Total[b] = Table_Density[b] + Table_Perturb[b];
+	 }
+      }
 
       double r_ref, dens_ref;
 
@@ -447,15 +482,15 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
       r_ref = r_tar / Soliton_ScaleL;
 
 //    linear interpolation
-      dens_ref = Mis_InterpolateFromTable( Soliton_DensProf_NBin, Table_Radius, Table_Density, r_ref );
+      dens_ref = Mis_InterpolateFromTable( Soliton_DensProf_NBin, Table_Radius, Table_Total, r_ref );
 
       if ( dens_ref == NULL_REAL )
       {
          if      ( r_ref <  Table_Radius[0] )
-            dens_ref = Table_Density[0];
+            dens_ref = Table_Total[0];
 
          else if ( r_ref >= Table_Radius[Soliton_DensProf_NBin-1] )
-            dens_ref = Table_Density[Soliton_DensProf_NBin-1];
+            dens_ref = Table_Total[Soliton_DensProf_NBin-1];
 
          else
             Aux_Error( ERROR_INFO, "interpolation failed at radius %13.7e (min/max radius = %13.7e/%13.7e) !!\n",
@@ -485,10 +520,10 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 // set the real and imaginary parts
 
 
-//   fluid[REAL] = sqrt( fluid[DENS] )* COS(ELBDM_ETA*(25*y));
-//   fluid[IMAG] = sqrt( fluid[DENS] )* SIN(ELBDM_ETA*(25*y));
-    fluid[REAL] = sqrt( fluid[DENS] );
-    fluid[IMAG] = 0.0;                  // imaginary part is always zero --> no initial velocity
+//   fluid[REAL] = sqrt( fluid[DENS] )* COS(ELBDM_ETA*(273.80579*y));
+//   fluid[IMAG] = sqrt( fluid[DENS] )* SIN(ELBDM_ETA*(273.80579*y));
+   fluid[REAL] = sqrt( fluid[DENS] );
+   fluid[IMAG] = 0.0;                  // imaginary part is always zero --> no initial velocity
 
 } // FUNCTION : SetGridIC
 
@@ -504,9 +539,10 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 //-------------------------------------------------------------------------------------------------------
 void End_EridanusII()
 {
-
    delete [] Soliton_DensProf;
+#ifdef PARTICLE
    delete [] h_ExtPotGrep_Eri; h_ExtPotGrep_Eri = NULL;
+#endif
 #ifdef __CUDACC__
  if (d_ExtPotGrep_Eri != NULL) {CUDA_CHECK_ERROR( cudaFree(d_ExtPotGrep_Eri));  
 #endif
