@@ -62,12 +62,12 @@ static void   RanVec_FixRadius( const double r, double RanVec[] );
 void Par_Init_ByFunction_EridanusII( const long NPar_ThisRank, const long NPar_AllRank,
                                   real *ParMass, real *ParPosX, real *ParPosY, real *ParPosZ,
                                   real *ParVelX, real *ParVelY, real *ParVelZ, real *ParTime,
-                                  real *AllAttribute[PAR_NATT_TOTAL] )
+                                  real *ParType, real *AllAttribute[PAR_NATT_TOTAL] )
 {
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ...\n", __FUNCTION__ );
 
-
+   
    real *Mass_AllRank   = NULL;
    real *Pos_AllRank[3] = { NULL, NULL, NULL };
    real *Vel_AllRank[3] = { NULL, NULL, NULL };
@@ -225,7 +225,7 @@ void Par_Init_ByFunction_EridanusII( const long NPar_ThisRank, const long NPar_A
 
 
 // synchronize all particles to the physical time on the base level
-   for (long p=0; p<NPar_ThisRank; p++)   ParTime[p] = Time[0];
+   for (long p=0; p<NPar_ThisRank; p++)   {ParTime[p] = Time[0]; ParType[p] = PTYPE_GENERIC_MASSIVE  ;}
 
 
 // get the number of particles in each rank and set the corresponding offsets
