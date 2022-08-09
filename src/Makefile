@@ -161,7 +161,7 @@ SIMU_OPTION += -DNLEVEL=10
 
 # maximum number of patches on each AMR level
 # --> must be set in any cases
-SIMU_OPTION += -DMAX_PATCH=2000000
+SIMU_OPTION += -DMAX_PATCH=20000000
 
 # number of cells along each direction in a single patch
 # --> must be an even number greater than or equal to 8

@@ -321,8 +321,13 @@ void SetParameter()
 
 
 //    evaluate the scale factors of each soliton
-      Soliton_ScaleL = Soliton_CoreRadius / CoreRadiusRef;
-      Soliton_ScaleD = 1.0 / ( 4.0*M_PI*NEWTON_G*SQR(ELBDM_ETA)*POW4(Soliton_ScaleL) );
+//      Soliton_ScaleL = Soliton_CoreRadius / CoreRadiusRef;
+      Soliton_ScaleL = 1.0;
+//      Soliton_ScaleD = 1.0 / ( 4.0*M_PI*NEWTON_G*SQR(ELBDM_ETA)*POW4(Soliton_ScaleL) );
+      Soliton_ScaleD = 1.0;
+//      printf("Soliton_ScaleL = %.4f\n" , Soliton_ScaleL);
+//      printf("Soltion_SCaleD = %.4f\n" , Soliton_ScaleD);
+
    } // if ( OPT__INIT != INIT_BY_RESTART )
 
 
@@ -448,7 +453,7 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 {
 
 //   const double Soliton_Center[3] = { amr->BoxCenter[0]+60,
-   const double Soliton_Center[3] = { amr->BoxCenter[0],
+   const double Soliton_Center[3] = { amr->BoxCenter[0]+67.86831,
                                       amr->BoxCenter[1],
                                       amr->BoxCenter[2] };
    const double r_tar             = sqrt( SQR(x-Soliton_Center[0]) +
@@ -520,10 +525,10 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 // set the real and imaginary parts
 
 
-//   fluid[REAL] = sqrt( fluid[DENS] )* COS(ELBDM_ETA*(273.80579*y));
-//   fluid[IMAG] = sqrt( fluid[DENS] )* SIN(ELBDM_ETA*(273.80579*y));
-   fluid[REAL] = sqrt( fluid[DENS] );
-   fluid[IMAG] = 0.0;                  // imaginary part is always zero --> no initial velocity
+   fluid[REAL] = sqrt( fluid[DENS] )* COS(ELBDM_ETA*(257.445164*y));
+   fluid[IMAG] = sqrt( fluid[DENS] )* SIN(ELBDM_ETA*(257.445164*y));
+//   fluid[REAL] = sqrt( fluid[DENS] );
+//   fluid[IMAG] = 0.0;                  // imaginary part is always zero --> no initial velocity
 
 } // FUNCTION : SetGridIC
 
