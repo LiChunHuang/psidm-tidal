@@ -46,6 +46,7 @@
 extern bool    Tidal_RotatingFrame;
 extern double  Tidal_Mass;
 extern double  Tidal_R;
+extern double  Tidal_Soften;
 extern double  Tidal_Angle0;
 extern bool    Tidal_FixedPos;
 extern bool    Tidal_Centrifugal;
@@ -101,13 +102,15 @@ void SetExtPotAuxArray_EridanusII( double AuxArray_Flt[], int AuxArray_Int[], co
    AuxArray_Flt[7] = ( Tidal_Centrifugal ) ? +1.0 : -1.0;
    AuxArray_Flt[8] = Tidal_Angle0;
    AuxArray_Flt[9] = ( Tidal_RotatingFrame ) ? +1.0 : -1.0;
+   AuxArray_Flt[10]= Tidal_Soften;
+
    
-   AuxArray_Flt[10]= rs;
    AuxArray_Flt[11]= rho;
    AuxArray_Flt[12]= NEWTON_G;
    AuxArray_Flt[13]= Eridanus_Prof_NBin;
    AuxArray_Flt[14]= Table_Timestep;
    AuxArray_Flt[15]= (Tidal_Orbit_Type) ? +1.0 : -1.0;
+   AuxArray_Flt[16]= rs;
 
 } // FUNCTION : SetExtPotAuxArray_EridanusII
 #endif // #ifndef __CUDACC__ ...else...
@@ -162,7 +165,7 @@ static real ExtPot_EridanusII( const double x, const double y, const double z, c
       const bool   Centrifugal = ( UserArray_Flt[7] > 0.0 ) ? true : false;
       const real   Angle0      = UserArray_Flt[8];
       const real   G           = UserArray_Flt[12];
-      const real   Rs          = UserArray_Flt[10];
+      const real   Rs          = UserArray_Flt[16];
       const real   Rho         = UserArray_Flt[11];
       const int    len         = UserArray_Flt[13];
       double         R;
@@ -236,10 +239,11 @@ static real ExtPot_EridanusII( const double x, const double y, const double z, c
       const real   dx     = (real)(x - Cen[0]);
       const real   dy     = (real)(y - Cen[1]);
       const real   dz     = (real)(z - Cen[2]);
-      const real    r     = SQRT( SQR(dx) + SQR(dy) + SQR(dz) ) ;
-      const real   _r     = 1.0/SQRT( SQR(dx) + SQR(dy) + SQR(dz) );
+      const real   eps    = (real)UserArray_Flt[10];
+      const real    r     = SQRT( SQR(dx) + SQR(dy) + SQR(dz) + SQR(eps) ) ;
+      const real   _r     = (real)1.0/SQRT( SQR(dx) + SQR(dy) + SQR(dz) + SQR(eps) );
       
-      const double Rs     = UserArray_Flt[10];
+      const double Rs     = UserArray_Flt[16];
       const double Rho    = UserArray_Flt[11];
       const double G      = UserArray_Flt[12];
 

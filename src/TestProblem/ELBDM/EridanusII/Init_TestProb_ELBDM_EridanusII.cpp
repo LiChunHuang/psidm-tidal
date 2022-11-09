@@ -24,6 +24,7 @@ static double   Soliton_CM_TolErrR;                      // maximum allowed erro
        bool     Tidal_RotatingFrame;                     // true/false --> rotating/inertial frame
        double   Tidal_Mass;                              // point mass
        double   Tidal_R;                                 // point mass distance
+       double   Tidal_Soften;                            // soften length of the point-mass potential --> for Tidal_RotatingFrame=false only
        double   Tidal_Angle0;                            // initial angle of the point mass
        bool     Tidal_FixedPos;                          // Fix the point mass position
        bool     Tidal_Centrifugal;                       // Add the centrifugal pseudo force
@@ -192,6 +193,7 @@ void SetParameter()
    ReadPara->Add( "Tidal_RotatingFrame",       &Tidal_RotatingFrame,        true,          Useless_bool,     Useless_bool      );
    ReadPara->Add( "Tidal_Mass",                &Tidal_Mass,                -1.0,           Eps_double,       NoMax_double      );
    ReadPara->Add( "Tidal_R",                   &Tidal_R,                   -1.0,           Eps_double,       NoMax_double      );
+   ReadPara->Add( "Tidal_Soften",              &Tidal_Soften,               0.0,           0.0,              NoMax_double      );
    ReadPara->Add( "Tidal_Angle0",              &Tidal_Angle0,               0.0,           NoMin_double,     NoMax_double      );
    ReadPara->Add( "Tidal_FixedPos",            &Tidal_FixedPos,             false,         Useless_bool,     Useless_bool      );
    ReadPara->Add( "Tidal_Centrifugal",         &Tidal_Centrifugal,          false,         Useless_bool,     Useless_bool      );
@@ -252,6 +254,7 @@ void SetParameter()
    Tidal_Mass     *= Const_Msun / UNIT_M;
    Tidal_R        *= Const_kpc  / UNIT_L;
    Tidal_CutoffR  *= Const_kpc  / UNIT_L;
+   Tidal_Soften   *= Const_kpc  / UNIT_L;
    Sponge_Width   *= Const_kpc  / UNIT_L;
    Sponge_Amp     *= (1.0/Const_Gyr) / (1.0/UNIT_T);
    rs             *= Const_kpc / UNIT_L;
@@ -321,11 +324,11 @@ void SetParameter()
 
 
 //    evaluate the scale factors of each soliton
-//      Soliton_ScaleL = Soliton_CoreRadius / CoreRadiusRef;
-      Soliton_ScaleL = 1.0;
-//      Soliton_ScaleD = 1.0 / ( 4.0*M_PI*NEWTON_G*SQR(ELBDM_ETA)*POW4(Soliton_ScaleL) );
-      Soliton_ScaleD = 1.0;
-//      printf("Soliton_ScaleL = %.4f\n" , Soliton_ScaleL);
+      Soliton_ScaleL = Soliton_CoreRadius / CoreRadiusRef;
+//      Soliton_ScaleL = 1.0;
+      Soliton_ScaleD = 1.0 / ( 4.0*M_PI*NEWTON_G*SQR(ELBDM_ETA)*POW4(Soliton_ScaleL) );
+//      Soliton_ScaleD = 1.0;
+      printf("CoreRadiusRef = %.4f\n" , CoreRadiusRef);
 //      printf("Soltion_SCaleD = %.4f\n" , Soliton_ScaleD);
 
    } // if ( OPT__INIT != INIT_BY_RESTART )
@@ -397,6 +400,7 @@ void SetParameter()
       Aux_Message( stdout, "  Tidal_RotatingFrame = %d\n",            Tidal_RotatingFrame            );
       Aux_Message( stdout, "  Tidal_Mass          = %13.7e Msun\n",   Tidal_Mass*UNIT_M/Const_Msun   );
       Aux_Message( stdout, "  Tidal_R             = %13.7e kpc\n",    Tidal_R*UNIT_L/Const_kpc       );
+      Aux_Message( stdout, "  Tidal_Soften        = %13.7e kpc\n",    Tidal_Soften*UNIT_L/Const_kpc  );
       Aux_Message( stdout, "  Tidal_Angle0        = %13.7e\n",        Tidal_Angle0                   );
       Aux_Message( stdout, "  Tidal_FixedPos      = %d\n",            Tidal_FixedPos                 );
       Aux_Message( stdout, "  Tidal_Centrifugal   = %d\n",            Tidal_Centrifugal              );
@@ -452,8 +456,8 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
                 const int lv, double AuxArray[] )
 {
 
-//   const double Soliton_Center[3] = { amr->BoxCenter[0]+60,
-   const double Soliton_Center[3] = { amr->BoxCenter[0]+67.86831,
+//   const double Soliton_Center[3] = { amr->BoxCenter[0]+67.86831,
+   const double Soliton_Center[3] = { amr->BoxCenter[0],
                                       amr->BoxCenter[1],
                                       amr->BoxCenter[2] };
    const double r_tar             = sqrt( SQR(x-Soliton_Center[0]) +
@@ -525,10 +529,10 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 // set the real and imaginary parts
 
 
-   fluid[REAL] = sqrt( fluid[DENS] )* COS(ELBDM_ETA*(257.445164*y));
-   fluid[IMAG] = sqrt( fluid[DENS] )* SIN(ELBDM_ETA*(257.445164*y));
-//   fluid[REAL] = sqrt( fluid[DENS] );
-//   fluid[IMAG] = 0.0;                  // imaginary part is always zero --> no initial velocity
+//   fluid[REAL] = sqrt( fluid[DENS] )* COS(ELBDM_ETA*(257.445164*y));
+//   fluid[IMAG] = sqrt( fluid[DENS] )* SIN(ELBDM_ETA*(257.445164*y));
+   fluid[REAL] = sqrt( fluid[DENS] );
+   fluid[IMAG] = 0.0;                  // imaginary part is always zero --> no initial velocity
 
 } // FUNCTION : SetGridIC
 
@@ -963,57 +967,6 @@ void Record_EridanusII()
    delete [] recv;
 
 } // FUNCTION : Record_EridanusII
-
-
-
-//-------------------------------------------------------------------------------------------------------
-// Function    :  Init_ExtPotAuxArray_EridanusII
-// Description :  Set the auxiliary array ExtPot_AuxArray[] used by ExtPot_EridanusII()
-//
-// Note        :  1. To adopt this routine, link to the function pointer "Init_ExtPotAuxArray_Ptr"
-//                   in a test problem initializer as follows:
-//
-//                      void Init_ExtPotAuxArray_EridanusII( double AuxArray[] );
-//
-//                      ...
-//
-//                      Init_ExtPotAuxArray_Ptr = Init_ExtPotAuxArray_EridanusII;
-//
-//                   --> Then it will be invoked by Init_ExtAccPot()
-//                2. AuxArray[] has the size of EXT_POT_NAUX_MAX defined in Macro.h (default = 10)
-//
-// Parameter   :  AuxArray : Array to be filled up
-//
-// Return      :  AuxArray[]
-//-------------------------------------------------------------------------------------------------------
-void Init_ExtPotAuxArray_EridanusII( double AuxArray[] )
-{
-
-   if ( Tidal_RotatingFrame )
-   {
-      AuxArray[0] = Tidal_CM[0];
-      AuxArray[1] = Tidal_CM[1];
-      AuxArray[2] = Tidal_CM[2];
-   }
-
-   else
-   {
-      AuxArray[0] = amr->BoxCenter[0];
-      AuxArray[1] = amr->BoxCenter[1];
-      AuxArray[2] = amr->BoxCenter[2];
-   }
-
-   AuxArray[3] = NEWTON_G*Tidal_Mass;
-   AuxArray[4] = Tidal_R;
-   AuxArray[5] = Tidal_Vrot;
-   AuxArray[6] = ( Tidal_FixedPos ) ? +1.0 : -1.0;
-   AuxArray[7] = ( Tidal_Centrifugal ) ? +1.0 : -1.0;
-   AuxArray[8] = Tidal_Angle0;
-   AuxArray[9] = ( Tidal_RotatingFrame ) ? +1.0 : -1.0;
-
-
-
-} // FUNCTION : Init_ExtPotAuxArray_EridanusII
 
 
 

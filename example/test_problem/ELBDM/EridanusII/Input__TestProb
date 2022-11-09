@@ -21,6 +21,7 @@ Tidal_Enabled                     0                                  # enable ti
 Tidal_RotatingFrame               1                                  # 0/1: inertial/rotating frame [1]
 Tidal_Mass                        1.0e12                             # point mass (Msun)
 Tidal_R                           1.0e2                              # point mass distance (kpc)
+Tidal_Soften                      0.0                                # soften length of the point-mass potential --> for Tidal_RotatingFrame=0 only (kpc)
 Tidal_Angle0                      0.0                                # initial angle of the point mass [0.0]
 Tidal_FixedPos                    0                                  # fix the point mass position (for testing the tidal force implementation only) [0]
 Tidal_Centrifugal                 0                                  # add the centrifugal pseudo force (THIS IS WRONG AND SHOULD NEVER TO USED) [0]
