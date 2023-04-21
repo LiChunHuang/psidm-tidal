@@ -456,7 +456,7 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
                 const int lv, double AuxArray[] )
 {
 
-//   const double Soliton_Center[3] = { amr->BoxCenter[0]+67.86831,
+//   const double Soliton_Center[3] = { amr->BoxCenter[0]+82.2951,
    const double Soliton_Center[3] = { amr->BoxCenter[0],
                                       amr->BoxCenter[1],
                                       amr->BoxCenter[2] };
@@ -529,8 +529,8 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 // set the real and imaginary parts
 
 
-//   fluid[REAL] = sqrt( fluid[DENS] )* COS(ELBDM_ETA*(257.445164*y));
-//   fluid[IMAG] = sqrt( fluid[DENS] )* SIN(ELBDM_ETA*(257.445164*y));
+//   fluid[REAL] = sqrt( fluid[DENS] )* COS(ELBDM_ETA*(180*y));
+//   fluid[IMAG] = sqrt( fluid[DENS] )* SIN(ELBDM_ETA*(180*y));
    fluid[REAL] = sqrt( fluid[DENS] );
    fluid[IMAG] = 0.0;                  // imaginary part is always zero --> no initial velocity
 
@@ -637,7 +637,7 @@ void GetCenterOfMass( const double CM_Old[], double CM_New[], const double CM_Ma
 #     ifdef PARTICLE
       Prepare_PatchData_InitParticleDensityArray( lv );
 
-      Par_CollectParticle2OneLevel( lv, _PAR_MASS|_PAR_POSX|_PAR_POSY|_PAR_POSZ, PredictParPos_No, NULL_REAL,
+      Par_CollectParticle2OneLevel( lv, _PAR_MASS|_PAR_POSX|_PAR_POSY|_PAR_POSZ|_PAR_TYPE, PredictParPos_No, NULL_REAL,
                                     SibBufPatch, FaSibBufPatch, JustCountNPar_No, TimingSendPar_No );
 #     endif
 
@@ -790,7 +790,7 @@ void Record_EridanusII()
 #     ifdef PARTICLE
       Prepare_PatchData_InitParticleDensityArray( lv );
 
-      Par_CollectParticle2OneLevel( lv, _PAR_MASS|_PAR_POSX|_PAR_POSY|_PAR_POSZ, PredictParPos_No, NULL_REAL,
+      Par_CollectParticle2OneLevel( lv, _PAR_MASS|_PAR_POSX|_PAR_POSY|_PAR_POSZ|_PAR_TYPE, PredictParPos_No, NULL_REAL,
                                     SibBufPatch, FaSibBufPatch, JustCountNPar_No, TimingSendPar_No );
 #     endif
 
@@ -992,18 +992,32 @@ bool Reset( real fluid[], const double x, const double y, const double z, const 
 {
 
    const real dr[3] = { x-Tidal_CM[0], y-Tidal_CM[1], z-Tidal_CM[2] };
+//    const real dr[3] = {x- amr->BoxCenter[0],y- amr->BoxCenter[1],z- amr->BoxCenter[2]} ;
    const real r     = SQRT( dr[0]*dr[0] + dr[1]*dr[1] + dr[2]*dr[2] );
+
+// Give Restart File initial velocity in inertial frame      
+      
+//      printf("Time = %f, %6.4e, %6.4e, %6.4e\n",Time,x, y, z);
+//   if    (Time == 1e-30)
+//   {              
+//      const real  old_real = fluid[REAL];
+//     const real  old_imag = fluid[IMAG];
+
+
+//      fluid[REAL] = old_real* COS(ELBDM_ETA*(207.1133*y)) - old_imag* SIN(ELBDM_ETA*(207.1133*y));
+//      fluid[IMAG] = old_imag* COS(ELBDM_ETA*(207.1133*y)) + old_real* SIN(ELBDM_ETA*(207.1133*y));      
+//   }  
+
 
 // sponge BC
    if      ( Sponge_Mode == 1 )
    {
-      const double v    = 0.5*Sponge_Amp*(  1.0 + tanh( (r-Tidal_CutoffR)/Sponge_Width )  );
-      const double damp = exp( -v*Sponge_dt );
-
-      fluid[REAL] *= damp;
-      fluid[IMAG] *= damp;
-      fluid[DENS]  = SQR( fluid[REAL] ) + SQR( fluid[IMAG] );
-
+//      const double v    = 0.5*Sponge_Amp*(  1.0 + tanh( (r-Tidal_CutoffR)/Sponge_Width )  );
+//      const double damp = exp( -v*Sponge_dt );
+      
+//      fluid[REAL] *= damp;
+//      fluid[IMAG] *= damp;
+//      fluid[DENS]  = SQR( fluid[REAL] ) + SQR( fluid[IMAG] );
       return true;
    }
 

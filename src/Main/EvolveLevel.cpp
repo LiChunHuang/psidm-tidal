@@ -21,6 +21,8 @@ extern double Sponge_dt;
 bool AutoReduceDt_Continue;
 
 extern void (*Flu_ResetByUser_API_Ptr)( const int lv, const int FluSg, const double TimeNew, const double dt );
+extern void (*Mis_UserWorkBeforeNextLevel_Ptr)( const int lv, const double TimeNew, const double TimeOld, const double dt );
+extern void (*Mis_UserWorkBeforeNextSubstep_Ptr)( const int lv, const double TimeNew, const double TimeOld, const double dt );
 
 
 
@@ -44,15 +46,22 @@ void EvolveLevel( const int lv, const double dTime_FaLv )
 
 
 #  ifdef GRAVITY
-   const bool UsePot            = ( OPT__SELF_GRAVITY  ||  OPT__EXT_POT );
+   const bool   UsePot            = ( OPT__SELF_GRAVITY  ||  OPT__EXT_POT );
 #  endif
 #  ifdef PARTICLE
-   const bool StoreAcc_Yes      = true;
-   const bool StoreAcc_No       = false;
-   const bool UseStoredAcc_Yes  = true;
-   const bool UseStoredAcc_No   = false;
-   const bool TimingSendPar_Yes = true;
+   const bool   StoreAcc_Yes      = true;
+   const bool   StoreAcc_No       = false;
+   const bool   UseStoredAcc_Yes  = true;
+   const bool   UseStoredAcc_No   = false;
+   const bool   TimingSendPar_Yes = true;
 #  endif
+#  if ( MODEL == HYDRO )
+   const double MinModCoeff_Ori   = MINMOD_COEFF;     // back up the original MINMOD_COEFF/INT_MONO_COEFF(_B)
+#  ifdef MHD
+   const double IntMonoCoeffB_Ori = INT_MONO_COEFF_B;
+#  endif
+#  endif // HYDRO
+   const double IntMonoCoeff_Ori  = INT_MONO_COEFF;
 
    double dTime_SoFar, dTime_SubStep, dt_SubStep, TimeOld, TimeNew, AutoReduceDtCoeff;
 
@@ -208,39 +217,88 @@ void EvolveLevel( const int lv, const double dTime_FaLv )
 //             restore the original parameters
                AutoReduceDtCoeff     = 1.0;
                AutoReduceDt_Continue = true;
+#              if ( MODEL == HYDRO )
+               MINMOD_COEFF          = MinModCoeff_Ori;
+#              ifdef MHD
+               INT_MONO_COEFF_B      = IntMonoCoeffB_Ori;
+#              endif
+#              endif // HYDRO
+               INT_MONO_COEFF        = IntMonoCoeff_Ori;
             }
 
             else
             {
-//             reduce the time-step coefficient if allowed
-               if ( AutoReduceDtCoeff >= AUTO_REDUCE_DT_FACTOR_MIN )
+//             reduce the time-step and interpolation coefficients if allowed
+               if ( AutoReduceDtCoeff >= AUTO_REDUCE_DT_FACTOR_MIN  &&
+#                   if ( MODEL == HYDRO )
+                    MINMOD_COEFF      >= AUTO_REDUCE_MINMOD_MIN     &&
+#                   ifdef MHD
+                    INT_MONO_COEFF_B  >= AUTO_REDUCE_INT_MONO_MIN   &&
+#                   endif
+#                   endif // HYDRO
+                    INT_MONO_COEFF    >= AUTO_REDUCE_INT_MONO_MIN    )
                {
                   AutoReduceDtCoeff    *= AUTO_REDUCE_DT_FACTOR;
                   AutoReduceDt_Continue = true;
+#                 if ( MODEL == HYDRO )
+                  MINMOD_COEFF         *= AUTO_REDUCE_MINMOD_FACTOR;
+#                 ifdef MHD
+                  INT_MONO_COEFF_B     *= AUTO_REDUCE_INT_MONO_FACTOR;
+#                 endif
+#                 endif // HYDRO
+                  INT_MONO_COEFF       *= AUTO_REDUCE_INT_MONO_FACTOR;
 
                   if ( MPI_Rank == 0 )
                   {
-                     Aux_Message( stderr, "WARNING : fluid solver failed (Lv %2d, counter %8ld) --> ", lv, AdvanceCounter[lv] );
-                     Aux_Message( stderr, "reduce dt by %13.7e\n", AutoReduceDtCoeff );
+                     Aux_Message( stderr, "WARNING : fluid solver failed (Lv %2d, counter %8ld)\n", lv, AdvanceCounter[lv] );
+                     Aux_Message( stderr, "   --> reduce dt by %13.7e", AutoReduceDtCoeff );
+#                    if ( MODEL == HYDRO )
+                     Aux_Message( stderr, ", MINMOD_COEFF to %13.7e", MINMOD_COEFF );
+#                    ifdef MHD
+                     Aux_Message( stderr, ", INT_MONO_COEFF_B to %13.7e", INT_MONO_COEFF_B );
+#                    endif
+#                    endif // HYDRO
+                     Aux_Message( stderr, ", INT_MONO_COEFF to %13.7e\n", INT_MONO_COEFF );
                   }
                }
 
-//             if the time-step coefficient becomes smaller than the given threshold, restore the original time-step
-//             and apply floor values in Flu_Close()
+//             if the time-step and interpolation coefficients become smaller than the given thresholds,
+//             restore the original coefficients and apply floor values in Flu_Close()
                else
                {
                   const double AutoReduceDtCoeff_Failed = AutoReduceDtCoeff;
+#                 if ( MODEL == HYDRO )
+                  const double MinModCoeff_Failed       = MINMOD_COEFF;
+#                 ifdef MHD
+                  const double IntMonoCoeffB_Failed     = INT_MONO_COEFF_B;
+#                 endif
+#                 endif // HYDRO
+                  const double IntMonoCoeff_Failed      = INT_MONO_COEFF;
 
                   AutoReduceDtCoeff     = 1.0;     // restore the original dt
                   AutoReduceDt_Continue = false;   // trigger density/energy floors in Flu_Close()
+#                 if ( MODEL == HYDRO )
+                  MINMOD_COEFF          = MinModCoeff_Ori;
+#                 ifdef MHD
+                  INT_MONO_COEFF_B      = IntMonoCoeffB_Ori;
+#                 endif
+#                 endif // HYDRO
+                  INT_MONO_COEFF        = IntMonoCoeff_Ori;
 
                   if ( MPI_Rank == 0 )
                   {
-                     Aux_Message( stderr, "WARNING : AUTO_REDUCE_DT failed (Lv %2d, counter %8ld, dt-coeff=%13.7e < min=%13.7e) !!\n",
-                                  lv, AdvanceCounter[lv], AutoReduceDtCoeff_Failed, AUTO_REDUCE_DT_FACTOR_MIN );
-                     Aux_Message( stderr, "          --> Apply floor values with the original dt as the last resort ...\n" );
+                     Aux_Message( stderr, "WARNING : AUTO_REDUCE_DT failed (Lv %2d, counter %8ld) !!\n", lv, AdvanceCounter[lv] );
+                     Aux_Message( stderr, "   --> dt-coeff %13.7e (min %13.7e)", AutoReduceDtCoeff_Failed, AUTO_REDUCE_DT_FACTOR_MIN );
+#                    if ( MODEL == HYDRO )
+                     Aux_Message( stderr, ", MINMOD_COEFF %13.7e (min %13.7e)", MinModCoeff_Failed, AUTO_REDUCE_MINMOD_MIN );
+#                    ifdef MHD
+                     Aux_Message( stderr, ", INT_MONO_COEFF_B %13.7e (min %13.7e)", IntMonoCoeffB_Failed, AUTO_REDUCE_INT_MONO_MIN );
+#                    endif
+#                    endif // HYDRO
+                     Aux_Message( stderr, ", INT_MONO_COEFF %13.7e (min %13.7e)\n", IntMonoCoeff_Failed, AUTO_REDUCE_INT_MONO_MIN );
+                     Aux_Message( stderr, "   --> Apply floor values with the original dt and interpolation coefficients as the last resort ...\n" );
                   }
-               } // if ( AutoReduceDtCoeff >= AUTO_REDUCE_DT_FACTOR_MIN ) ... else ...
+               } // if ( AutoReduceDtCoeff >= AUTO_REDUCE_DT_FACTOR_MIN  && ... ) ... else ...
 
 //             restart the sub-step while loop
                continue;
@@ -531,7 +589,7 @@ void EvolveLevel( const int lv, const double dTime_FaLv )
 // ===============================================================================================
 
 
-//    7. update MPI buffers
+//    8. update MPI buffers
 // ===============================================================================================
 //    exchange the updated fluid field in the buffer patches
       TIMING_FUNC(   Buf_GetBufferData( lv, SaveSg_Flu, SaveSg_Mag, NULL_INT, DATA_GENERAL,
@@ -547,7 +605,7 @@ void EvolveLevel( const int lv, const double dTime_FaLv )
 #     endif
 
 
-//    8. update tracer particles
+//    9. update tracer particles
 // ===============================================================================================
 #     ifdef TRACER
       if ( OPT__VERBOSE  &&  MPI_Rank == 0 )
@@ -594,6 +652,22 @@ void EvolveLevel( const int lv, const double dTime_FaLv )
 // ===============================================================================================
 
 
+//    10. user-specified operations before entering the next refinement level
+// ===============================================================================================
+      if ( Mis_UserWorkBeforeNextLevel_Ptr != NULL )
+      {
+         if ( OPT__VERBOSE  &&  MPI_Rank == 0 )
+            Aux_Message( stdout, "   Lv %2d: Mis_UserWorkBeforeNextLevel %6s... ", lv, "" );
+
+//       use the same timer as the fluid solver for now
+         TIMING_FUNC(   Mis_UserWorkBeforeNextLevel_Ptr( lv, TimeNew, TimeOld, dt_SubStep ),
+                        Timer_Flu_Advance[lv],   TIMER_ON   );
+
+         if ( OPT__VERBOSE  &&  MPI_Rank == 0 )    Aux_Message( stdout, "done\n" );
+      }
+// ===============================================================================================
+
+
       dTime_SoFar       += dTime_SubStep;
       Time_Prev     [lv] = TimeOld;
       Time          [lv] = TimeNew;
@@ -606,7 +680,7 @@ void EvolveLevel( const int lv, const double dTime_FaLv )
       if ( lv != TOP_LEVEL  &&  NPatchTotal[lv+1] != 0 )
       {
 
-//       9. enter the next refinement level
+//       11. enter the next refinement level
 // ===============================================================================================
 #        ifdef TIMING
          MPI_Barrier( MPI_COMM_WORLD );
@@ -622,11 +696,11 @@ void EvolveLevel( const int lv, const double dTime_FaLv )
 // ===============================================================================================
 
 
-//       10. correct the data at the current level with the data at the next finer level
+//       12. correct the data at the current level with the data at the next finer level
 // ===============================================================================================
          if ( OPT__VERBOSE  &&  MPI_Rank == 0 )    Aux_Message( stdout, "   Lv %2d: Flu_FixUp %24s... ", lv, "" );
 
-//       10-1. use the average data on fine grids to correct the coarse-grid data
+//       12-1. use the average data on fine grids to correct the coarse-grid data
          if ( OPT__FIXUP_RESTRICT )
          {
             TIMING_FUNC(   Flu_FixUp_Restrict( lv, amr->FluSg[lv+1], amr->FluSg[lv], amr->MagSg[lv+1], amr->MagSg[lv],
@@ -640,7 +714,7 @@ void EvolveLevel( const int lv, const double dTime_FaLv )
 #           endif
          }
 
-//       10-2. use the fine-grid electric field on the coarse-fine boundaries to correct the coarse-grid magnetic field
+//       12-2. use the fine-grid electric field on the coarse-fine boundaries to correct the coarse-grid magnetic field
 #        ifdef MHD
          if ( OPT__FIXUP_ELECTRIC )
          {
@@ -655,7 +729,7 @@ void EvolveLevel( const int lv, const double dTime_FaLv )
          }
 #        endif
 
-//       10-3. use the fine-grid fluxes across the coarse-fine boundaries to correct the coarse-grid data
+//       12-3. use the fine-grid fluxes across the coarse-fine boundaries to correct the coarse-grid data
 //             --> apply AFTER other fix-up operations since it will check negative pressure as well
 //                 (which requires the coarse-grid B field updated by Flu_FixUp_Restrict() and MHD_FixUp_Electric())
          if ( OPT__FIXUP_FLUX )
@@ -670,7 +744,7 @@ void EvolveLevel( const int lv, const double dTime_FaLv )
                            Timer_FixUp[lv],   TIMER_ON   );
          }
 
-//       10-4. exchange the updated data
+//       12-4. exchange the updated data
 #        ifdef MHD
          if ( OPT__FIXUP_FLUX  ||  OPT__FIXUP_RESTRICT  ||  OPT__FIXUP_ELECTRIC )
 #        else
@@ -686,11 +760,11 @@ void EvolveLevel( const int lv, const double dTime_FaLv )
       } // if ( lv != TOP_LEVEL  &&  NPatchTotal[lv+1] != 0 )
 
 
-//    11. flag the current level and create patches at the next finer level
+//    13. flag the current level and create patches at the next finer level
 // ===============================================================================================
       if ( lv != TOP_LEVEL  &&  AdvanceCounter[lv] % REGRID_COUNT == 0 )
       {
-//       11-1. flag
+//       13-1. flag
          if ( OPT__VERBOSE  &&  MPI_Rank == 0 )    Aux_Message( stdout, "   Lv %2d: Flag %29s... ", lv, "" );
 
 #        ifdef LOAD_BALANCE
@@ -706,7 +780,7 @@ void EvolveLevel( const int lv, const double dTime_FaLv )
          if ( OPT__VERBOSE  &&  MPI_Rank == 0 )    Aux_Message( stdout, "done\n" );
 
 
-//       11-2. refine
+//       13-2. refine
          if ( OPT__VERBOSE  &&  MPI_Rank == 0 )    Aux_Message( stdout, "   Lv %2d: Refine %27s... ", lv, "" );
 
          TIMING_FUNC(   Refine( lv, USELB_YES ),
@@ -761,6 +835,21 @@ void EvolveLevel( const int lv, const double dTime_FaLv )
       } // if ( lv != TOP_LEVEL  &&  AdvanceCounter[lv] % REGRID_COUNT == 0 )
 // ===============================================================================================
 
+
+//    14. user-specified operations before proceeding to the next sub-step
+// ===============================================================================================
+      if ( Mis_UserWorkBeforeNextSubstep_Ptr != NULL )
+      {
+         if ( OPT__VERBOSE  &&  MPI_Rank == 0 )
+            Aux_Message( stdout, "   Lv %2d: Mis_UserWorkBeforeNextSubstep %4s... ", lv, "" );
+
+//       use the same timer as the fluid solver for now
+         TIMING_FUNC(   Mis_UserWorkBeforeNextSubstep_Ptr( lv, TimeNew, TimeOld, dt_SubStep ),
+                        Timer_Flu_Advance[lv],   TIMER_ON   );
+
+         if ( OPT__VERBOSE  &&  MPI_Rank == 0 )    Aux_Message( stdout, "done\n" );
+      }
+// ===============================================================================================
    } // while()
 
 

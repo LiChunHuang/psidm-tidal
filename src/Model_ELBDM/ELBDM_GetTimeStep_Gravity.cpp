@@ -63,13 +63,13 @@ double ELBDM_GetTimeStep_Gravity( const int lv )
 //-------------------------------------------------------------------------------------------------------
 real GetMaxPot( const int lv )
 {
-
+//   printf("CMx = %f, CMy = %f, CMz = %f, CutoffR = %f", Tidal_CM[0],Tidal_CM[1],Tidal_CM[2],Tidal_CutoffR);
    real   PotG, PotS;            // PotG/S: gravitational (both self- and external gravity) / self-interaction potential
    real   Pot, MaxPot=0.0;       // Pot = PotG + PotS
    double x0, y0, z0, x, y, z;
    int    SibPID;
    bool   Skip, AnyCell=false;
-
+//   real   MinR = 10000;
 const double Tidal_CutoffR2 = SQR( Tidal_CutoffR );
 double dr[3], r2;
 
@@ -129,7 +129,11 @@ if ( Tidal_Enabled  &&  Sponge_Mode != 3 )
    dr[1] = y - Tidal_CM[1];
    dr[2] = z - Tidal_CM[2];
    r2    = dr[0]*dr[0] + dr[1]*dr[1] + dr[2]*dr[2];
+   
+//   MinR = MIN( MinR, SQRT(r2));
+   
    if ( r2 > Tidal_CutoffR2 )    continue;
+//   else printf("r2 = %f", r2);
 }
 
 
@@ -144,7 +148,7 @@ if ( Tidal_Enabled  &&  Sponge_Mode != 3 )
          MaxPot = MAX( MaxPot, Pot );
       }}} // k,j,i
    } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
-
+//   printf("MinR = %f", MinR);
 
 // get the maximum potential in all ranks
    real MaxPot_AllRank;
@@ -158,8 +162,8 @@ if ( Tidal_Enabled  &&  Sponge_Mode != 3 )
 
 
 // check
-   if ( MaxPot_AllRank == 0.0  &&  AnyCell  &&  MPI_Rank == 0 )
-      Aux_Error( ERROR_INFO, "MaxPot == 0.0 at lv %d !!\n", lv );
+//   if ( MaxPot_AllRank == 0.0  &&  AnyCell  &&  MPI_Rank == 0 )
+//      Aux_Error( ERROR_INFO, "MaxPot == 0.0 at lv %d !!\n", lv );
 
 
    return MaxPot_AllRank;
