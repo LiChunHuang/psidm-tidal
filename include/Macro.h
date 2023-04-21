@@ -863,6 +863,7 @@
 
 
 // GAMER status
+// --> if we ever want to swap the following values, must check all MPI functions using MPI_BAND or MPI_BOR
 #define GAMER_SUCCESS      1
 #define GAMER_FAILED       0
 
@@ -939,9 +940,13 @@
 #define MIN( a, b )     (  ( (a) < (b) ) ? (a) : (b)  )
 
 
+// safe ATAN2 that does not return nan when a = b = 0
+#define SATAN2( a, b )   (  ( (a) == (real)0.0  &&  (b) == (real)0.0 ) ? (real)0.0 : ATAN2( (a), (b) )  )
+
+
 // power functions
-#define SQR(  a )       ( (a)*(a)         )
-#define CUBE( a )       ( (a)*(a)*(a)     )
+#define SQR(  a )       ( (a)*(a)     )
+#define CUBE( a )       ( (a)*(a)*(a) )
 #define POW4( a )       ( (a)*(a)*(a)*(a) )
 
 

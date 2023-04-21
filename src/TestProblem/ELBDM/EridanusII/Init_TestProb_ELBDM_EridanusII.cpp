@@ -13,10 +13,10 @@ static char     Table_Filename[1000];                    // Table name
 
 static int      Soliton_DensProf_NBin;                   // number of radial bins of the soliton density profile
 static double  *Soliton_DensProf   = NULL;               // soliton density profile [radius/density]
-static double   Soliton_ScaleL     = NULL;               // L/D: length/density scale factors of each soliton
+static double   Soliton_ScaleL     = NULL_REAL;          // L/D: length/density scale factors of each soliton
                                                          //      (defined as the ratio between the core radii/peak
                                                          //      density of the target and reference soliton profiles)
-static double   Soliton_ScaleD     = NULL;
+static double   Soliton_ScaleD     = NULL_REAL;
 static double   Soliton_CM_MaxR;                         // maximum radius for determining CM
 static double   Soliton_CM_TolErrR;                      // maximum allowed errors for determining CM
 
@@ -987,8 +987,8 @@ void Record_EridanusII()
 // Return      :  true  : This cell has been reset
 //                false : This cell has not been reset
 //-------------------------------------------------------------------------------------------------------
-bool Reset( real fluid[], const double x, const double y, const double z, const double Time,
-            const double dt, const int lv, double AuxArray[] )
+int Reset( real fluid[], const double x, const double y, const double z, const double Time,
+           const double dt, const int lv, double AuxArray[] )
 {
 
    const real dr[3] = { x-Tidal_CM[0], y-Tidal_CM[1], z-Tidal_CM[2] };

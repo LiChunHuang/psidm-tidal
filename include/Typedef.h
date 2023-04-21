@@ -52,9 +52,10 @@ const TestProbID_t
    TESTPROB_HYDRO_JEANS_INSTABILITY            =   16,
    TESTPROB_HYDRO_PARTICLE_EQUILIBRIUM_IC      =   17,
    TESTPROB_HYDRO_PARTICLE_TEST                =   18,
+   TESTPROB_HYDRO_ENERGY_POWER_SPECTRUM        =   19,
    TESTPROB_HYDRO_BARRED_POT                   =   51,
    TESTPROB_HYDRO_CDM_LSS                      =  100,
-
+   TESTPROB_HYDRO_ZELDOVICH                    =  101,
    TESTPROB_ELBDM_EXTPOT                       = 1000,
    TESTPROB_ELBDM_JEANS_INSTABILITY_COMOVING   = 1001,
    TESTPROB_ELBDM_JEANS_INSTABILITY_PHYSICAL   = 1002,
@@ -65,6 +66,7 @@ const TestProbID_t
    TESTPROB_ELBDM_ISOLATED_HALO                = 1007,
    TESTPROB_ELBDM_GAUSSIAN_WAVE_PACKET         = 1008,
    TESTPROB_ELBDM_LSS                          = 1009,
+   TESTPROB_ELBDM_PLANE_WAVE                   = 1010,
    TESTPROB_ELBDM_ERIDANUSII                   = 1100;
 
 
@@ -465,13 +467,20 @@ const ELBDMRemoveMotionCM_t
 #endif
 
 
-// options in Aux_ComputeProfile()
+// options in Aux_ComputeProfile() and Aux_FindExtrema()
 typedef int PatchType_t;
 const PatchType_t
    PATCH_LEAF                 = 0,
    PATCH_NONLEAF              = 1,
    PATCH_BOTH                 = 2,
    PATCH_LEAF_PLUS_MAXNONLEAF = 3;
+
+
+// options in Aux_FindExtrema()
+typedef int ExtremaMode_t;
+const ExtremaMode_t
+   EXTREMA_MIN = 1,
+   EXTREMA_MAX = 2;
 
 
 // function pointers
