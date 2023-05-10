@@ -217,15 +217,12 @@ SIMU_OPTION += -DSUPPORT_HDF5
 # support GNU scientific library
 SIMU_OPTION += -DSUPPORT_GSL
 
-# support FFTW library
-# --> must be enabled when GRAVITY is enabled
-SIMU_OPTION += -DSUPPORT_FFTW
 
 # support FFTW library
 # --> SUPPORT_FFTW must be defined when GRAVITY is enabled
 # --> use FFTW3 for fftw3 support
 #     use FFTW2 for fftw2 support
-#SIMU_OPTION += -DSUPPORT_FFTW=FFTW3
+SIMU_OPTION += -DSUPPORT_FFTW=FFTW3
 
 
 # support yt inline analysis
@@ -300,7 +297,7 @@ endif
 #CXXFLAG    += -fstack-protector-all
 #CXXFLAG    += -fsanitize=undefined -fsanitize=address
 #LIB        += -fsanitize=undefined -fsanitize=address
-endif
+#endif
 
 ## suppress warning when OpenMP is disabled
 #ifeq "$(filter -DOPENMP, $(SIMU_OPTION))" ""

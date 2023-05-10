@@ -242,7 +242,6 @@ Procedure for outputting new variables:
 //                2466 : 2023/02/02 --> output OPT__RES_PHASE
 //                2467 : 2023/02/07 --> output ELBDM_BASE_SPECTRAL
 //                2468 : 2023/05/08 --> output OPT__FFTW_STARTUP
->>>>>>> 41166b484d21d5ff16c404eb4bbc8ab4e26b025d
 //-------------------------------------------------------------------------------------------------------
 void Output_DumpData_Total_HDF5( const char *FileName )
 {
