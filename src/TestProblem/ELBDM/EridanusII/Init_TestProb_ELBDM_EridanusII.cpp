@@ -457,7 +457,7 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 {
 
 //   const double Soliton_Center[3] = { amr->BoxCenter[0]+82.2951,
-   const double Soliton_Center[3] = { amr->BoxCenter[0],
+   const double Soliton_Center[3] = { amr->BoxCenter[0]+73.815646,
                                       amr->BoxCenter[1],
                                       amr->BoxCenter[2] };
    const double r_tar             = sqrt( SQR(x-Soliton_Center[0]) +
@@ -987,7 +987,7 @@ void Record_EridanusII()
 // Return      :  true  : This cell has been reset
 //                false : This cell has not been reset
 //-------------------------------------------------------------------------------------------------------
-int Reset( real fluid[], const double x, const double y, const double z, const double Time,
+int Reset( real fluid[],const double Emag, const double x, const double y, const double z, const double Time,
            const double dt, const int lv, double AuxArray[] )
 {
 
@@ -1001,23 +1001,22 @@ int Reset( real fluid[], const double x, const double y, const double z, const d
 //   if    (Time == 1e-30)
 //   {              
 //      const real  old_real = fluid[REAL];
-//     const real  old_imag = fluid[IMAG];
+//      const real  old_imag = fluid[IMAG];
 
-
-//      fluid[REAL] = old_real* COS(ELBDM_ETA*(207.1133*y)) - old_imag* SIN(ELBDM_ETA*(207.1133*y));
-//      fluid[IMAG] = old_imag* COS(ELBDM_ETA*(207.1133*y)) + old_real* SIN(ELBDM_ETA*(207.1133*y));      
+//      fluid[REAL] = old_real* COS(ELBDM_ETA*(209.6132105*y)) - old_imag* SIN(ELBDM_ETA*(209.6132105*y));
+//      fluid[IMAG] = old_imag* COS(ELBDM_ETA*(209.6132105*y)) + old_real* SIN(ELBDM_ETA*(209.6132105*y));      
 //   }  
 
 
 // sponge BC
    if      ( Sponge_Mode == 1 )
    {
-//      const double v    = 0.5*Sponge_Amp*(  1.0 + tanh( (r-Tidal_CutoffR)/Sponge_Width )  );
-//      const double damp = exp( -v*Sponge_dt );
+      const double v    = 0.5*Sponge_Amp*(  1.0 + tanh( (r-Tidal_CutoffR)/Sponge_Width )  );
+      const double damp = exp( -v*Sponge_dt );
       
-//      fluid[REAL] *= damp;
-//      fluid[IMAG] *= damp;
-//      fluid[DENS]  = SQR( fluid[REAL] ) + SQR( fluid[IMAG] );
+      fluid[REAL] *= damp;
+      fluid[IMAG] *= damp;
+      fluid[DENS]  = SQR( fluid[REAL] ) + SQR( fluid[IMAG] );
       return true;
    }
 

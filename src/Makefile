@@ -216,7 +216,7 @@ SIMU_OPTION += -DSUPPORT_GSL
 
 # support FFTW library
 # --> must be enabled when GRAVITY is enabled
-#SIMU_OPTION += -DSUPPORT_FFTW
+SIMU_OPTION += -DSUPPORT_FFTW
 
 # support yt inline analysis
 #SIMU_OPTION += -DSUPPORT_LIBYT
@@ -278,19 +278,12 @@ endif
 # OPENMPFLAG  = -fopenmp                                  # openmp flag
 # LIB         =                                           # libraries and linker flags
 
-<<<<<<< HEAD
-## for debug only
-#ifeq "$(filter -DGAMER_DEBUG, $(SIMU_OPTION))" "-DGAMER_DEBUG"
-##CXXFLAG    += -fstack-protector-all
-#endif
-=======
 # for debug only
-ifeq "$(filter -DGAMER_DEBUG, $(SIMU_OPTION))" "-DGAMER_DEBUG"
+#ifeq "$(filter -DGAMER_DEBUG, $(SIMU_OPTION))" "-DGAMER_DEBUG"
 #CXXFLAG    += -fstack-protector-all
 #CXXFLAG    += -fsanitize=undefined -fsanitize=address
 #LIB        += -fsanitize=undefined -fsanitize=address
-endif
->>>>>>> 296359095b29a76c4fef1a978a216f3007d4f2fe
+#endif
 
 ## suppress warning when OpenMP is disabled
 #ifeq "$(filter -DOPENMP, $(SIMU_OPTION))" ""
