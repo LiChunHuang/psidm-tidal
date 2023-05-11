@@ -978,6 +978,7 @@ void Record_EridanusII()
 //
 // Parameter   :  fluid    : Fluid array storing both the input (origial) and reset values
 //                           --> Including both active and passive variables
+//                Emag     : Magnetic energy (MHD only)
 //                x/y/z    : Target physical coordinates
 //                Time     : Target physical time
 //                dt       : Time interval to advance solution
@@ -987,7 +988,7 @@ void Record_EridanusII()
 // Return      :  true  : This cell has been reset
 //                false : This cell has not been reset
 //-------------------------------------------------------------------------------------------------------
-int Reset( real fluid[], const double x, const double y, const double z, const double Time,
+int Reset( real fluid[], const double Emag, const double x, const double y, const double z, const double Time,
            const double dt, const int lv, double AuxArray[] )
 {
 
