@@ -7,6 +7,12 @@
 static real GetMaxPot( const int lv );
 
 
+extern bool   Tidal_Enabled;
+extern double Tidal_CutoffR;
+extern double Tidal_CM[3];
+extern int    Sponge_Mode;
+
+
 
 
 //-------------------------------------------------------------------------------------------------------
@@ -57,16 +63,19 @@ double ELBDM_GetTimeStep_Gravity( const int lv )
 //-------------------------------------------------------------------------------------------------------
 real GetMaxPot( const int lv )
 {
-
+//   printf("CMx = %f, CMy = %f, CMz = %f, CutoffR = %f", Tidal_CM[0],Tidal_CM[1],Tidal_CM[2],Tidal_CutoffR);
    real   PotG, PotS;            // PotG/S: gravitational (both self- and external gravity) / self-interaction potential
    real   Pot, MaxPot=0.0;       // Pot = PotG + PotS
    double x0, y0, z0, x, y, z;
    int    SibPID;
    bool   Skip, AnyCell=false;
+//   real   MinR = 10000;
+const double Tidal_CutoffR2 = SQR( Tidal_CutoffR );
+double dr[3], r2;
 
 
 // get the maximum potential in this rank
-#  pragma omp parallel for private( PotG, PotS, Pot, x0, y0, z0, x, y, z, SibPID, Skip ) \
+#  pragma omp parallel for private( PotG, PotS, Pot, x0, y0, z0, x, y, z, SibPID, Skip, dr, r2 ) \
                            reduction( max:MaxPot ) reduction( ||:AnyCell ) schedule( runtime )
    for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
    {
@@ -120,6 +129,22 @@ real GetMaxPot( const int lv )
       for (int j=0; j<PATCH_SIZE; j++) {  y = y0 + (double)j*dh;
       for (int i=0; i<PATCH_SIZE; i++) {  x = x0 + (double)i*dh;
 
+
+// skip cells outside the cut-off radius
+if ( Tidal_Enabled  &&  Sponge_Mode != 3 )
+{
+   dr[0] = x - Tidal_CM[0];
+   dr[1] = y - Tidal_CM[1];
+   dr[2] = z - Tidal_CM[2];
+   r2    = dr[0]*dr[0] + dr[1]*dr[1] + dr[2]*dr[2];
+   
+//   MinR = MIN( MinR, SQRT(r2));
+   
+   if ( r2 > Tidal_CutoffR2 )    continue;
+//   else printf("r2 = %f", r2);
+}
+
+
          PotG   = amr->patch[ amr->PotSg[lv] ][lv][PID]->pot[k][j][i];
 #        ifdef QUARTIC_SELF_INTERACTION
          PotS   = ELBDM_LAMBDA*amr->patch[ amr->FluSg[lv] ][lv][PID]->fluid[DENS][k][j][i];
@@ -131,7 +156,7 @@ real GetMaxPot( const int lv )
          MaxPot = MAX( MaxPot, Pot );
       }}} // k,j,i
    } // for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)
-
+//   printf("MinR = %f", MinR);
 
 // get the maximum potential in all ranks
    real MaxPot_AllRank;
@@ -145,8 +170,8 @@ real GetMaxPot( const int lv )
 
 
 // check
-   if ( MaxPot_AllRank == 0.0  &&  AnyCell  &&  MPI_Rank == 0 )
-      Aux_Error( ERROR_INFO, "MaxPot == 0.0 at lv %d !!\n", lv );
+//   if ( MaxPot_AllRank == 0.0  &&  AnyCell  &&  MPI_Rank == 0 )
+//      Aux_Error( ERROR_INFO, "MaxPot == 0.0 at lv %d !!\n", lv );
 
 
    return MaxPot_AllRank;

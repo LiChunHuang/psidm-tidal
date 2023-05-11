@@ -94,7 +94,7 @@ void ELBDM_Init_ByFunction_AssignData( const int lv )
 
    real   fluid[NCOMP_TOTAL], fluid_sub[NCOMP_TOTAL];
    double x, y, z, x0, y0, z0;
-
+   
 
 #  pragma omp parallel for private( fluid, fluid_sub, x, y, z, x0, y0, z0 ) schedule( runtime ) num_threads( OMP_NThread )
    for (int PID=0; PID<amr->NPatchComma[lv][1]; PID++)

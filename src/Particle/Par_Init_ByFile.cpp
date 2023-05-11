@@ -2,6 +2,10 @@
 
 #ifdef PARTICLE
 
+extern bool   ParFileCM_Enabled;
+extern double ParFileCM_Dis[3];
+extern double ParFileCM_Vel[3];
+
 
 
 
@@ -159,6 +163,25 @@ void Par_Init_ByFile()
    delete [] ParData1;
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "done\n" );
+
+
+// shift the CM of particles loaded from PAR_IC
+   if ( ParFileCM_Enabled )
+   {
+      if ( MPI_Rank == 0 )    Aux_Message( stdout, "Shifting particle CM ..." );
+
+      for (long p=0; p<NParThisRank; p++)
+      {
+         amr->Par->Attribute[PAR_POSX][p] += ParFileCM_Dis[0];
+         amr->Par->Attribute[PAR_POSY][p] += ParFileCM_Dis[1];
+         amr->Par->Attribute[PAR_POSZ][p] += ParFileCM_Dis[2];
+         amr->Par->Attribute[PAR_VELX][p] += ParFileCM_Vel[0];
+         amr->Par->Attribute[PAR_VELY][p] += ParFileCM_Vel[1];
+         amr->Par->Attribute[PAR_VELZ][p] += ParFileCM_Vel[2];
+      }
+
+      if ( MPI_Rank == 0 )    Aux_Message( stdout, "done\n" );
+   } // if ( ParFileCM_Enabled )
 
 
    if ( MPI_Rank == 0 )    Aux_Message( stdout, "%s ... done\n", __FUNCTION__ );

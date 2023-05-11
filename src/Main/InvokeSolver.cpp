@@ -19,7 +19,6 @@ extern Timer_t *Timer_Poi_PrePot_F[NLEVEL];
 
 
 
-
 //-------------------------------------------------------------------------------------------------------
 // Function    :  InvokeSolver
 // Description :  Invoke the GPU (or CPU) solvers and enable the concurrent execution between CPU and GPU

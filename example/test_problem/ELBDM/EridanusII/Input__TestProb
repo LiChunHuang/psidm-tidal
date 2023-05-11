@@ -1,0 +1,39 @@
+# problem-specific runtime parameters
+Soliton_CoreRadius                6.5e-1                             # soliton core radius (in code unit)
+Soliton_InputMode                 2                                  # soliton input mode (1/2/3 -> table/approximate analytical form/none) [1]
+Soliton_OuterSlope               -8.5                                # soliton outer slope (only used by Soliton_InputMode=2) [-8.0]
+Soliton_DensProf_Filename         SolitonDensityProfile_Lambda0.0    # filename of the input soliton density profile
+Soliton_CM_MaxR            	  1.2e-3                             # maximum radius for determining the center of mass
+Soliton_CM_TolErrR         	 -1.0                                # maximum allowed errors when checking the center of mass convergence (<0=auto -> 1*dh_min) [-1.0]
+Star_RSeed                        123                                # random seed for setting particle position and velocity (>=0) [123]
+Star_SigmaMode                    0                                  # velocity dispersion assignment (0/1 -> self-bound/soliton) [0]
+Star_Rho0                         5.8e6                              # peak density
+Star_R0                           1.5e-5                             # scale radius
+Star_MaxR                         3.5e-5                             # maximum radius for particles
+#Star_CenterX                      9.2333633e-02                      # central coordinate x/y/z [box center]
+#Star_CenterY                      8.9157312e-02                      #
+#Star_CenterZ                      9.1019408e-02                      #
+Star_MassProfNBin                 1000                               # number of radial bins in the mass profile table [1000]
+Star_AddParForRestart             1                                  # add particles after restart [0]
+Star_AddParForRestart_NPar        200000                             # number of particles for Star_AddParForRestart
+Star_AddParForRestart_PeakRho    -1.0                                # Peak density for Star_AddParForRestart and Star_SigmaMode=1
+Tidal_Enabled                     0                                  # enable tidal field [0]
+Tidal_RotatingFrame               1                                  # 0/1: inertial/rotating frame [1]
+Tidal_Mass                        1.0e12                             # point mass (Msun)
+Tidal_R                           1.0e2                              # point mass distance (kpc)
+Tidal_Soften                      0.0                                # soften length of the point-mass potential --> for Tidal_RotatingFrame=0 only (kpc)
+Tidal_Angle0                      0.0                                # initial angle of the point mass [0.0]
+Tidal_FixedPos                    0                                  # fix the point mass position (for testing the tidal force implementation only) [0]
+Tidal_Centrifugal                 0                                  # add the centrifugal pseudo force (THIS IS WRONG AND SHOULD NEVER TO USED) [0]
+Tidal_CutoffR                     5.0e1                              # Cut-off radius (kpc)
+Sponge_Mode                       3                                  # sponge BC/truncation BC/none
+Sponge_Width                      5.0e0                              # sponge width (in kpc) [10.0]
+Sponge_Amp                        5.0e0                              # sponge amplitude (in Gyr^-1) [1.0]
+ParFileCM_Enabled                 0                                  # shift the CM of particles loaded from PAR_IC [0]
+ParFileCM_DisX                    0.0                                # particle CM position displacement x/y/z (in kpc) [0.0]
+ParFileCM_DisY                    0.0                                #
+ParFileCM_DisZ                    0.0                                #
+ParFileCM_VelX                    0.0                                # particle CM velocity shift x/y/z (in km/s) [0.0]
+ParFileCM_VelY                    0.0                                #
+ParFileCM_VelZ                    0.0                                #
+DensRecMode                       3                                  # peak density recording mode (1/2/3 -> ELBDM/particle/total density) [3]

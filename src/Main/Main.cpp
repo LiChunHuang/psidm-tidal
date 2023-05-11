@@ -565,7 +565,7 @@ int main( int argc, char *argv[] )
    MPI_Barrier( MPI_COMM_WORLD );
 
 
-   while ( (Time[0]-END_T < -1.e-10)  &&  (Step < END_STEP) )
+   while ( (Time[0]-END_T < -1e-10)  &&  (Step < END_STEP) )
    {
 
 #     ifdef TIMING

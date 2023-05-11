@@ -40,7 +40,9 @@ SIMU_OPTION += -DMODEL=ELBDM
 SIMU_OPTION += -DGRAVITY
 
 # enable particles
+# --> must enable GRAVITY
 SIMU_OPTION += -DPARTICLE
+
 
 # support Grackle, a chemistry and radiative cooling library
 # --> must set NCOMP_PASSIVE_USER according to the primordial chemistry network set by GRACKLE_PRIMORDIAL
@@ -288,7 +290,6 @@ ifeq "$(filter -DGAMER_DEBUG, $(SIMU_OPTION))" "-DGAMER_DEBUG"
 #CXXFLAG    += -fstack-protector-all
 #LIB        += -lssp
 endif
-
 # suppress warning when OpenMP is disabled
 ifeq "$(filter -DOPENMP, $(SIMU_OPTION))" ""
 # CXXFLAG    += -Wno-unknown-pragmas -diag-disable 3180
@@ -297,8 +298,8 @@ endif
 
 # gnu
 # -------------------------------------------------------------------------------
-# CXX         = g++                                       # serial compiler
-##CXX         = $(MPI_PATH)/bin/mpicxx                    # MPI compiler
+## CXX         = g++                                       # serial compiler
+# CXX         = $(MPI_PATH)/bin/mpicxx                    # MPI compiler
 ##CXX         = CC                                        # cray wrapper script
 # CXXFLAG     = -g -O3                                    # general flags
 ##CXXFLAG     = -g -O3 -std=c++11
@@ -313,14 +314,14 @@ endif
 
 # for debug only
 #ifeq "$(filter -DGAMER_DEBUG, $(SIMU_OPTION))" "-DGAMER_DEBUG"
-##CXXFLAG    += -fstack-protector-all
-##CXXFLAG    += -fsanitize=undefined -fsanitize=address
-##LIB        += -fsanitize=undefined -fsanitize=address
+#CXXFLAG    += -fstack-protector-all
+#CXXFLAG    += -fsanitize=undefined -fsanitize=address
+#LIB        += -fsanitize=undefined -fsanitize=address
 #endif
 
 ## suppress warning when OpenMP is disabled
 #ifeq "$(filter -DOPENMP, $(SIMU_OPTION))" ""
-# CXXFLAG    += -Wno-unknown-pragmas
+## CXXFLAG    += -Wno-unknown-pragmas
 #endif
 
 
