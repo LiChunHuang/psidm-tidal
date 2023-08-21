@@ -457,7 +457,7 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 {
 
 //   const double Soliton_Center[3] = { amr->BoxCenter[0]+82.2951,
-   const double Soliton_Center[3] = { amr->BoxCenter[0]+73.815646,
+   const double Soliton_Center[3] = { amr->BoxCenter[0]+74.10938,
                                       amr->BoxCenter[1],
                                       amr->BoxCenter[2] };
    const double r_tar             = sqrt( SQR(x-Soliton_Center[0]) +
@@ -529,8 +529,8 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 // set the real and imaginary parts
 
 
-//   fluid[REAL] = sqrt( fluid[DENS] )* COS(ELBDM_ETA*(180*y));
-//   fluid[IMAG] = sqrt( fluid[DENS] )* SIN(ELBDM_ETA*(180*y));
+//   fluid[REAL] = sqrt( fluid[DENS] )* COS(ELBDM_ETA*(209.6132105*y));
+//   fluid[IMAG] = sqrt( fluid[DENS] )* SIN(ELBDM_ETA*(209.6132105*y));
    fluid[REAL] = sqrt( fluid[DENS] );
    fluid[IMAG] = 0.0;                  // imaginary part is always zero --> no initial velocity
 
@@ -1012,12 +1012,12 @@ int Reset( real fluid[], const double Emag, const double x, const double y, cons
 // sponge BC
    if      ( Sponge_Mode == 1 )
    {
-      const double v    = 0.5*Sponge_Amp*(  1.0 + tanh( (r-Tidal_CutoffR)/Sponge_Width )  );
-      const double damp = exp( -v*Sponge_dt );
+//      const double v    = 0.5*Sponge_Amp*(  1.0 + tanh( (r-Tidal_CutoffR)/Sponge_Width )  );
+//      const double damp = exp( -v*Sponge_dt );
       
-      fluid[REAL] *= damp;
-      fluid[IMAG] *= damp;
-      fluid[DENS]  = SQR( fluid[REAL] ) + SQR( fluid[IMAG] );
+//      fluid[REAL] *= damp;
+//      fluid[IMAG] *= damp;
+//      fluid[DENS]  = SQR( fluid[REAL] ) + SQR( fluid[IMAG] );
       return true;
    }
 
