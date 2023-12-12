@@ -1,0 +1,96 @@
+Compilation flags:
+========================================
+Enable : MODEL=ELBDM, GRAVITY
+Disable: COMOVING, PARTICLE, UNSPLIT_GRAVITY
+
+
+Default setup:
+========================================
+host_potential_type
+
+0/point mass approximate
+Tidal_Mass=1e12 (Msun)
+1/NFW profile #you must apply this unit no matter what is your code unit
+rs 18.3  (kpc) 
+rho 1.15e7 (Msun/kpc^3)
+
+>>>>>>>>>>>>>>>>>>>>>
+1.
+elliptical orbit test
+
+Tidal_Enable = 1
+Tidal_RotatingFrame = 1
+Table_Filename = table.txt # table timestep need to be constant
+Table_Timestep = 0.00075 
+Tidal_Orbit_Type = 0
+
+>>>>>>>>>>>>>>>>>>>>
+2.
+construct perturb soliton and relax
+Soliton_InputMode =1
+Soliton_DensProf_Filename = SolitonDensityProfile_Lamda0.0
+Tidal_Enable = 0
+Tidal_RotatingFrame = 0
+Perturbation = 1
+Soliton_perturb_Filename = SolitonDensituProfile_Lamda_perturb_100
+OPT_EXT_POT = 0 //Input__Paramter
+
+>>>>>>>>>>>>>>>>>>>>
+3.
+soliton perturbation test
+take the snapshot as Restart file when the soliton oscillation is stable 
+Tidal_Enable = 1
+Tidal_RotatingFrame = 1
+
+
+
+
+
+
+
+
+
+
+Note:
+========================================
+2.
+elliptical orbit test
+
+table.txt is a sample for the format of table.
+calculate the orbit you want and output it as table.txt
+
+
+
+3.
+constuct the perturb soliton and relax
+
+only 50% and 100%  perturb amplitude can choose 
+
+check the data in /projectY/jared/bin/gamer-fork/fig_test/constuct_perturb_soliton
+
+
+
+
+4.
+soliton perturbation test
+
+u is the parameter 
+soliton peak densiyt divide the host average density in tidal radius
+ 
+
+
+use gnuplot to plot
+
+plot './Record__Center'  u 1:3
+you can observe the evolution of soliton peak density oscillation 
+
+
+
+
+
+
+
+
+
+
+

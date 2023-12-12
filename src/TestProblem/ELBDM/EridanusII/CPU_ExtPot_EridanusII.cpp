@@ -60,10 +60,10 @@ extern double  rs;
 extern double  rho;
 extern double Table_Timestep;
 extern bool   Tidal_Orbit_Type;
+extern bool   host_potential_type;
 
 
-
-//---------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------
 // Function    :  SetExtPotAuxArray_EridanusII
 // Description :  Set the auxiliary arrays ExtPot_AuxArray_Flt/Int[] used by ExtPot_EridanusII()
 //
@@ -111,7 +111,7 @@ void SetExtPotAuxArray_EridanusII( double AuxArray_Flt[], int AuxArray_Int[], co
    AuxArray_Flt[14]= Table_Timestep;
    AuxArray_Flt[15]= (Tidal_Orbit_Type) ? +1.0 : -1.0;
    AuxArray_Flt[16]= rs;
-
+   AuxArray_Flt[17]= host_potential_type;
 } // FUNCTION : SetExtPotAuxArray_EridanusII
 #endif // #ifndef __CUDACC__ ...else...
 
@@ -155,7 +155,7 @@ static real ExtPot_EridanusII( const double x, const double y, const double z, c
 
    const bool RotatingFrame = ( UserArray_Flt[9] > 0.0 ) ? true : false;
    const bool Orbit_Type    = ( UserArray_Flt[15]> 0.0 ) ? true : false;
-
+   const bool host_potential= ( UserArray_Flt[17]> 0.0 ) ? true : false;		
    if ( RotatingFrame )
    {
       const double CM[3]       = { UserArray_Flt[0], UserArray_Flt[1], UserArray_Flt[2] };
@@ -219,11 +219,14 @@ static real ExtPot_EridanusII( const double x, const double y, const double z, c
       tmp     = ( dx*Rx + dy*Ry + dz*Rz )*_R;
 
       
-
-      phi     = (real)2.0*M_PI*G*CUBE(Rs)*Rho*((real)SQR(tmp)*(_R*_ratio2*_Rs2)+((real)3.0*SQR(tmp)-dr2)*(_R2*_ratio*_Rs-log(ratio)*_R3));      // NFW
-
-//      phi     = (real)0.5*GM*CUBE(_R)*( dr2 - (real)3.0*SQR(tmp) ); // Point mass
-
+       if (host_potential)
+       {
+         phi     = (real)2.0*M_PI*G*CUBE(Rs)*Rho*((real)SQR(tmp)*(_R*_ratio2*_Rs2)+((real)3.0*SQR(tmp)-dr2)*(_R2*_ratio*_Rs-log(ratio)*_R3));      // NFW
+       }
+       else
+       {
+         phi     = (real)0.5*GM*CUBE(_R)*( dr2 - (real)3.0*SQR(tmp) ); // Point mass
+       }
 //      phi     = -1.5*GM*CUBE(_R)*dr2;   // FIG3 assumption
 
       if ( Centrifugal )
@@ -246,9 +249,17 @@ static real ExtPot_EridanusII( const double x, const double y, const double z, c
       const double Rs     = UserArray_Flt[16];
       const double Rho    = UserArray_Flt[11];
       const double G      = UserArray_Flt[12];
-
-      return -4*M_PI*G*Rho*Rs*Rs*Rs*_r*(log((Rs+r)/Rs)) ;;
-//      return  -GM*_r;
+      
+      if (host_potential)
+      {
+         return -4*M_PI*G*Rho*Rs*Rs*Rs*_r*(log((Rs+r)/Rs)) ;
+      }
+      else
+      {
+         return  -GM*_r;
+      }
+   
+   
    } // if ( RotatingFrame ) ... else ...
 
 } // FUNCTION : ExtPot_EridanusII

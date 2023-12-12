@@ -52,7 +52,7 @@ static int      Perturbation;                            //0 = perturbation off 
 static char     Soliton_perturb_Filename[MAX_STRING];   //filename of hte reference solition perturb density profile
 static int      Soliton_perturb_NBin;                    //number of radial bins of the soliton density perturbed profile
 static double   *Soliton_perturb = NULL;
-
+       bool     host_potential_type;                      // 0 = point mass approximate , 1 = NFW profile
 
 // =======================================================================================
 
@@ -201,7 +201,8 @@ void SetParameter()
    ReadPara->Add( "rs",                        &rs,                         18.3,          Eps_double,       NoMax_double      );
    ReadPara->Add( "rho",                       &rho,                        1.15e+7,       Eps_double,       NoMax_double      );
    ReadPara->Add( "Table_Timestep",            &Table_Timestep,             0.00075,       Eps_double,       NoMax_double      );
-   ReadPara->Add( "Tidal_Orbit_Type",          &Tidal_Orbit_Type,           true,         Useless_bool,     Useless_bool      );
+   ReadPara->Add( "Tidal_Orbit_Type",          &Tidal_Orbit_Type,           true,         Useless_bool,      Useless_bool      );
+   ReadPara->Add( "host_potential_type",       &host_potential_type,        true,         Useless_bool,      Useless_bool      ); 
 
    ReadPara->Add( "Sponge_Mode",               &Sponge_Mode,                3,             1,                3                 );
    ReadPara->Add( "Sponge_Width",              &Sponge_Width,               10.0,          Eps_double,       NoMax_double      );
@@ -457,7 +458,7 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 {
 
 //   const double Soliton_Center[3] = { amr->BoxCenter[0]+82.2951,
-   const double Soliton_Center[3] = { amr->BoxCenter[0]+73.815646,
+   const double Soliton_Center[3] = { amr->BoxCenter[0]+74.10938,
                                       amr->BoxCenter[1],
                                       amr->BoxCenter[2] };
    const double r_tar             = sqrt( SQR(x-Soliton_Center[0]) +
@@ -529,10 +530,10 @@ void SetGridIC( real fluid[], const double x, const double y, const double z, co
 // set the real and imaginary parts
 
 
-//   fluid[REAL] = sqrt( fluid[DENS] )* COS(ELBDM_ETA*(180*y));
-//   fluid[IMAG] = sqrt( fluid[DENS] )* SIN(ELBDM_ETA*(180*y));
-   fluid[REAL] = sqrt( fluid[DENS] );
-   fluid[IMAG] = 0.0;                  // imaginary part is always zero --> no initial velocity
+   fluid[REAL] = sqrt( fluid[DENS] )* COS(ELBDM_ETA*(209.613205*y));
+   fluid[IMAG] = sqrt( fluid[DENS] )* SIN(ELBDM_ETA*(209.613205*y));
+//   fluid[REAL] = sqrt( fluid[DENS] );
+//   fluid[IMAG] = 0.0;                  // imaginary part is always zero --> no initial velocity
 
 } // FUNCTION : SetGridIC
 
